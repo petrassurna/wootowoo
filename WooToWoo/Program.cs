@@ -37,6 +37,12 @@ internal class Program
   {
     Config config = Config();
 
+    if(!Location.DatabaseExists())
+    {
+      Console.WriteLine($"Database does not exist, try a fresh import by running without the 'r' flag");
+      return;
+    }
+
     ImportSummaryRepository importSummaryRepo = new ImportSummaryRepository();
     ImportSummary importSummary = importSummaryRepo.Get();
 
