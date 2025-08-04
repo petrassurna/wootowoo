@@ -1,0 +1,37 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.13.35806.99
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WooCommerce", "WooCommerce\WooCommerce.csproj", "{D40473C8-779D-F5A5-EC15-52C472DFBB28}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WooToWoo", "WooToWoo\WooToWoo.csproj", "{F22DDE7C-520C-4CD3-9996-9056657C7D14}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WooCommerce.Tests", "WooCommerce.Tests\WooCommerce.Tests.csproj", "{A69CD510-D037-40D2-ADEF-921BC8F4DFE4}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{D40473C8-779D-F5A5-EC15-52C472DFBB28}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D40473C8-779D-F5A5-EC15-52C472DFBB28}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D40473C8-779D-F5A5-EC15-52C472DFBB28}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D40473C8-779D-F5A5-EC15-52C472DFBB28}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F22DDE7C-520C-4CD3-9996-9056657C7D14}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F22DDE7C-520C-4CD3-9996-9056657C7D14}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F22DDE7C-520C-4CD3-9996-9056657C7D14}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F22DDE7C-520C-4CD3-9996-9056657C7D14}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A69CD510-D037-40D2-ADEF-921BC8F4DFE4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A69CD510-D037-40D2-ADEF-921BC8F4DFE4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A69CD510-D037-40D2-ADEF-921BC8F4DFE4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A69CD510-D037-40D2-ADEF-921BC8F4DFE4}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {8E64A0EE-45DE-447B-BDF4-DA74EEC7E6A8}
+	EndGlobalSection
+EndGlobal

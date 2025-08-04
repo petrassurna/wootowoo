@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "WooToWoo": {
+      "commandName": "Project",
+      "commandLineArgs": "r"
+    }
+  }
+}

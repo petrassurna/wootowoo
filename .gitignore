@@ -1,0 +1,58 @@
+## Build results
+bin/
+obj/
+
+## User-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+## Rider & VS Code
+.idea/
+.vscode/
+*.code-workspace
+
+## OS-specific files
+.DS_Store
+Thumbs.db
+
+## NuGet
+*.nupkg
+*.snupkg
+.nuget/
+
+## Logs and debug
+*.log
+
+## LiteDB (if you're storing DBs locally)
+*.db
+*.ldb
+
+## Environment files
+.env
+.env.*
+
+## Test results
+TestResult*/ 
+*.trx
+*.coverage
+
+## Global tools
+tools/
+
+## Visual Studio cache files
+.vs/
+
+## JetBrains Rider
+.idea/
+
+## ReSharper
+_ReSharper*/
+*.[Rr]e[Ss]harper
+*.DotSettings.user
+
+## Backup & temporary
+*.bak
+*.tmp
+*.swp
