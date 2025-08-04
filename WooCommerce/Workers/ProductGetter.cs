@@ -4,7 +4,7 @@ using WooCommerce.Http;
 using WooCommerce.Http.SourceInstallation;
 using WooCommerce.Http.SourceInstallation.Obtainers;
 using WooCommerce.Http.SourceInstallation.Structures;
-using WooCommerce.Repository.Summary;
+using WooCommerce.Repositories.Summary;
 
 namespace WooCommerce.Workers
 {

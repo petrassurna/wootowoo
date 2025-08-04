@@ -2,14 +2,12 @@
 using Newtonsoft.Json;
 using System.Diagnostics;
 using WooCommerce.Http;
-using WooCommerce.Http.SourceInstallation.Categories;
 using WooToWoo.Configuration;
 using WooToWoo.Helpers;
-using WooCommerce.Http.DestinationInstallation;
 using WooCommerce.Workers;
-using WooCommerce.Repository.Summary;
 using WooCommerce.Http.SourceInstallation.Structures;
-using WooCommerce.Repository;
+using WooCommerce.Repositories;
+using WooCommerce.Repositories.Summary;
 
 internal class Program
 {

@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace WooCommerce.Repository.Summary
+namespace WooCommerce.Repositories.Summary
 {
   public class ImportSummary
   {

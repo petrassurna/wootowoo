@@ -1,6 +1,6 @@
 ﻿using LiteDB;
 
-namespace WooCommerce.Repository.Products
+namespace WooCommerce.Repositories.Products
 {
   public class ProductRepository
   {

@@ -1,7 +1,7 @@
 ﻿using Newtonsoft.Json;
 using System.Text;
 using WooCommerce.Http.SourceInstallation.Structures;
-using WooCommerce.Repository.Products;
+using WooCommerce.Repositories.Products;
 
 namespace WooCommerce.Http.SourceInstallation.Obtainers
 {

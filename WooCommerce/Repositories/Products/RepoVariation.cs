@@ -1,7 +1,7 @@
 ﻿using LiteDB;
 using WooCommerce.Http.SourceInstallation.Structures;
 
-namespace WooCommerce.Repository.Products
+namespace WooCommerce.Repositories.Products
 {
   public class RepoVariation
   {

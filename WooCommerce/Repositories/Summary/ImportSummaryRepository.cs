@@ -1,6 +1,6 @@
 ﻿using LiteDB;
 
-namespace WooCommerce.Repository.Summary
+namespace WooCommerce.Repositories.Summary
 {
   public class ImportSummaryRepository
   {
