@@ -1,9 +1,12 @@
 ﻿using Newtonsoft.Json;
 using System;
+using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Net.Http.Headers;
 using System.Text;
 using WooCommerce.Http.Media;
 using WooCommerce.Http.SourceInstallation.Categories;
+using WooCommerce.Repositories.Category;
 
 namespace WooCommerce.Http.DestinationInstallation
 {
@@ -11,26 +14,28 @@ namespace WooCommerce.Http.DestinationInstallation
   {
 
     HttpClient _httpClient;
-    WordPressInstallation _installation;
+    WordPressInstallation _destination;
     MediaUploader _mediaUploader;
+    CategoryRepository _categoryRepository;
 
-    public CategoryUploader(HttpClient httpClient, WordPressInstallation installation)
+    public CategoryUploader(HttpClient httpClient, WordPressInstallation destination)
     {
       _httpClient = httpClient;
-      _installation = installation;
-      _mediaUploader = new MediaUploader(httpClient, installation);
+      _destination = destination;
+      _mediaUploader = new MediaUploader(httpClient, destination);
+      _categoryRepository = new CategoryRepository();
     }
 
-    private async Task<CategoryUploaded> AddCategory(CategorySource category, int parent)
-      => await CategoryHttp(HttpMethod.Post, category, 
-        parent, $"{_installation.Url}/wp-json/wc/v3/products/categories");
+    private async Task<CategoryUploaded> AddCategory(CategorySource category)
+      => await CategoryHttp(HttpMethod.Post, category,
+        0, $"{_destination.Url}/wp-json/wc/v3/products/categories");
 
-    private async Task<CategoryUploaded> CategoryHttp(HttpMethod method, CategorySource category, 
+    private async Task<CategoryUploaded> CategoryHttp(HttpMethod method, CategorySource category,
       int parent, string apiUrl)
     {
       CategoryUploaded categoryUploaded = new CategoryUploaded();
 
-      var credentials = $"{_installation.Key}:{_installation.Secret}";
+      var credentials = $"{_destination.Key}:{_destination.Secret}";
       var base64Credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes(credentials));
 
       using var request = new HttpRequestMessage(method, apiUrl);
@@ -66,6 +71,46 @@ namespace WooCommerce.Http.DestinationInstallation
     }
 
 
+    private async Task<CategoryUploaded> CategoryUpdateHttp(CategorySourceNoImage category,
+      int parent, string apiUrl)
+    {
+      CategoryUploaded categoryUploaded = new CategoryUploaded();
+
+      var credentials = $"{_destination.Key}:{_destination.Secret}";
+      var base64Credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes(credentials));
+
+      using var request = new HttpRequestMessage(HttpMethod.Put, $"{_destination.Url}/wp-json/wc/v3/products/categories/{category.id}");
+      request.Headers.Authorization = new AuthenticationHeaderValue("Basic", base64Credentials);
+
+      var newCategory = BuildCategoryPayload(category, parent);
+
+      var json = JsonConvert.SerializeObject(newCategory);
+      request.Content = new StringContent(json, Encoding.UTF8, "application/json");
+
+      try
+      {
+        using var response = await _httpClient.SendAsync(request);
+
+        if (response.IsSuccessStatusCode)
+        {
+          var result = await response.Content.ReadAsStringAsync();
+          categoryUploaded = JsonConvert.DeserializeObject<CategoryUploaded>(result);
+        }
+        else
+        {
+          Console.WriteLine($"❌ Failed to create category: {response.StatusCode}");
+          var error = await response.Content.ReadAsStringAsync();
+          Console.WriteLine(error);
+        }
+      }
+      catch (Exception ex)
+      {
+        Console.WriteLine($"🚨 Error: {ex.Message}");
+      }
+
+      return categoryUploaded;
+    }
+
     private object BuildCategoryPayload(CategorySource category, int parent)
     {
       return new
@@ -87,13 +132,30 @@ namespace WooCommerce.Http.DestinationInstallation
       };
     }
 
+
+    private object BuildCategoryPayload(CategorySourceNoImage category, int parent)
+    {
+      return new
+      {
+        name = category.name,
+        slug = category.slug,
+        description = category.description,
+        parent = parent,
+        display = category.display,
+        menu_order = category.menu_order,
+        image = category.imageId > 0
+            ? new { id = category.imageId }
+            : null
+      };
+    }
+
     public async Task<List<CategorySource>> CategoryExists(string slug)
     {
-      var requestUri = $"{_installation.Url}/wp-json/wc/v3/products/categories?slug={slug}";
+      var requestUri = $"{_destination.Url}/wp-json/wc/v3/products/categories?slug={slug}";
 
       using var request = new HttpRequestMessage(HttpMethod.Get, requestUri);
 
-      var credentials = $"{_installation.Key}:{_installation.Secret}";
+      var credentials = $"{_destination.Key}:{_destination.Secret}";
       var base64Credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes(credentials));
       request.Headers.Authorization = new AuthenticationHeaderValue("Basic", base64Credentials);
 
@@ -107,33 +169,32 @@ namespace WooCommerce.Http.DestinationInstallation
       return categories;
     }
 
-    private int CategoryParent(List<CategoryMap> map, CategorySource source)
+
+    private bool MediaFilesEquivalent(MediaFile file1, MediaFile file2)
     {
-      if (map.Any(m => m.CategorySource.id == source.parent))
-      {
-        return map.FirstOrDefault(m => m.CategorySource.id == source.parent).CategoryUploaded.id;
-      }
+      if (file1 == null && file2 == null)
+        return true;
+      else if (file1 == null && file2 != null)
+        return false;
+      else if (file1 != null && file2 == null)
+        return false;
       else
-      {
-        return 0;
-      }
-    }
+        return MediaFilesEquivalent(file1.src, file2.src);
 
-    public async Task FirstPass(List<CategorySource> categories)
-    {
-      List<CategoryNode> nodes = categories.BuildCategoryTree();
-      List<CategoryMap> map = new List<CategoryMap>();
 
-      foreach (var node in nodes)
-      {
-        await UploadNode(node, map, 0);
-      }
     }
+    
+
 
     private bool MediaFilesEquivalent(string url1, string url2)
     {
       if (url1 == null && url2 == null)
         return true;
+
+      if(!IsValidWebUri(url1) || !IsValidWebUri(url2))
+      {
+        return false;
+      }
 
       Uri uri1 = new Uri(url1);
       Uri uri2 = new Uri(url2);
@@ -144,56 +205,108 @@ namespace WooCommerce.Http.DestinationInstallation
       return pathAndQuery1 == pathAndQuery2;
     }
 
+
+    public static bool IsValidWebUri(string input)
+    {
+      return Uri.TryCreate(input, UriKind.Absolute, out Uri uriResult) &&
+             (uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps);
+    }
+
     private async Task<CategoryUploaded> UpdateCategory(CategorySource categoryToUpload, CategorySource categoryUploaded, int parent)
-      => await CategoryHttp(HttpMethod.Put, categoryToUpload, parent, 
-        $"{_installation.Url}/wp-json/wc/v3/products/categories/{categoryUploaded.id}");
+      => await CategoryHttp(HttpMethod.Put, categoryToUpload, parent,
+        $"{_destination.Url}/wp-json/wc/v3/products/categories/{categoryUploaded.id}");
+
+
+    private bool UpdateRequired(CategorySource newCategory, CategorySource existingUploadedCategory)
+    {
+      if (newCategory.name != existingUploadedCategory.name)
+      {
+        return true;
+      }
+      else if (newCategory.slug != existingUploadedCategory.slug)
+      {
+        return true;
+      }
+      else if (newCategory.description != existingUploadedCategory.description)
+      {
+        return true;
+      }
+      else if (newCategory.display != existingUploadedCategory.display)
+      {
+        return true;
+      }
+      else if (newCategory.menu_order != existingUploadedCategory.menu_order)
+      {
+        return true;
+      }
+      else if (!MediaFilesEquivalent(newCategory.image, existingUploadedCategory.image))
+      {
+        return true;
+      }
+
+      return false;
+    }
+
 
     public async Task Upload(List<CategorySource> categories)
     {
-      await FirstPass(categories);
+      await UploadWithoutParents(categories);
+      //await UploadWithParents();
     }
 
 
-    private async Task UploadNode(CategoryNode node, List<CategoryMap> map, int parent)
+    public async Task UploadWithParents()
     {
-      int next_parent = 0;
-      List<CategorySource> existingUploadedCategory = await CategoryExists(node.Category.slug);
+      throw new NotImplementedException();
+    }
 
-      if(node.Category.name.ToLower().Contains("export"))
+
+    public async Task UploadWithoutParents(List<CategorySource> categories)
+    {
+      foreach (var category in categories)
       {
-
+        await UploadCategory(category);
       }
+    }
+
+    //need to check what happens when categories uploaded
+    //make one different,  is image reuploaded it shouldnt be
+    private async Task UploadCategory(CategorySource category)
+    {
+      List<CategorySource> existingUploadedCategory = await CategoryExists(category.slug);
 
       if (!existingUploadedCategory.Any())
       {
-        CategoryUploaded uploaded = await AddCategory(node.Category, parent);
+        CategoryUploaded uploaded = await AddCategory(category);
 
-        map.Add(new CategoryMap
+        _categoryRepository.SaveNewUploadedCategory(category, uploaded);
+        Console.WriteLine($"Category {category.name} saved");
+      }
+      else if (UpdateRequired(category, existingUploadedCategory.First()))
+      {
+        var existingUploadedCategory_ = existingUploadedCategory.First();
+
+        //don't reupload the category image, it will create a duplicate
+        if (MediaFilesEquivalent(category.image, existingUploadedCategory_.image) && category.image != null)
         {
-          CategorySource = node.Category,
-          CategoryUploaded = uploaded
-        });
+          var c = category.CategorySourceExistingImage(existingUploadedCategory_.image.id);
+          c.id = existingUploadedCategory_.id;
 
-        next_parent = uploaded.id;
+          await CategoryUpdateHttp(c, 0, _destination.Url);
+        }
+        else
+        {
+          CategoryUploaded categoryUploaded = await UpdateCategory(category, existingUploadedCategory_, existingUploadedCategory.First().parent);
+          _categoryRepository.SaveUpdatedCategory(category, categoryUploaded);
+        }
+
+        Console.WriteLine($"Category {category.name} updated");
       }
       else
       {
-        await UpdateCategory(existingUploadedCategory.First(), node.Category);
-        next_parent = existingUploadedCategory.First().id;
+        Console.WriteLine($"Category {category.name} is uploaded and up to date");
       }
 
-      foreach (var child in node.Children)
-      {
-        await UploadNode(child, map, next_parent);
-      }
-    }
-
-    private async Task UpdateCategory(CategorySource uploadedCategory, CategorySource sourceCategory)
-    {
-      if (!UploadSuccessfull(uploadedCategory, sourceCategory))
-      {
-        await UpdateCategory(sourceCategory, uploadedCategory, 0);
-      }
     }
 
 

@@ -38,6 +38,22 @@ namespace WooCommerce.Repositories.Products
     private bool DatabaseExists() => File.Exists(_connectionString);
 
 
+    public void DeleteProducts()
+    {
+      lock (_lock)
+      {
+        using var db = new LiteDatabase(_connectionString);
+        var collection = db.GetCollection<RepoProduct>(PRODUCTS);
+
+        collection.DeleteAll();
+
+        // Recreate indexes (optional if schema hasn't changed)
+        collection.EnsureIndex(x => x.Id);
+        collection.EnsureIndex(x => x.Name);
+      }
+    }
+
+
     public IEnumerable<RepoProduct> GetAllVariations()
     {
       lock (_lock)
@@ -69,57 +85,57 @@ namespace WooCommerce.Repositories.Products
     }
 
 
-    public int GetProductCount()
-    {
-      lock (_lock)
+      public int GetProductCount()
       {
-        using var db = new LiteDatabase(_connectionString);
+        lock (_lock)
+        {
+          using var db = new LiteDatabase(_connectionString);
 
-        var collection = db.GetCollection<RepoProduct>(PRODUCTS);
+          var collection = db.GetCollection<RepoProduct>(PRODUCTS);
 
-        return collection.Count();
+          return collection.Count();
+        }
       }
-    }
 
 
-    public int GetVariationCount()
-    {
-      lock (_lock)
+      public int GetVariationCount()
       {
-        using var db = new LiteDatabase(_connectionString);
+        lock (_lock)
+        {
+          using var db = new LiteDatabase(_connectionString);
 
-        var collection = db.GetCollection<RepoProduct>(PRODUCTS);
+          var collection = db.GetCollection<RepoProduct>(PRODUCTS);
 
-        return collection.Count(p => p.ProductType == "variable");
+          return collection.Count(p => p.ProductType == "variable");
+        }
       }
-    }
 
 
-    public void SaveProduct(RepoProduct variation)
-    {
-      lock (_lock)
+      public void SaveProduct(RepoProduct variation)
       {
-        using var db = new LiteDatabase(_connectionString);
+        lock (_lock)
+        {
+          using var db = new LiteDatabase(_connectionString);
 
-        var collection = db.GetCollection<RepoProduct>(PRODUCTS);
-        collection.Upsert(variation);
+          var collection = db.GetCollection<RepoProduct>(PRODUCTS);
+          collection.Upsert(variation);
+        }
       }
-    }
 
 
-    public void SaveProducts(IEnumerable<RepoProduct> productList)
-    {
-      lock (_lock)
+      public void SaveProducts(IEnumerable<RepoProduct> productList)
       {
-        using var db = new LiteDatabase(_connectionString);
-        var collection = db.GetCollection<RepoProduct>(PRODUCTS);
+        lock (_lock)
+        {
+          using var db = new LiteDatabase(_connectionString);
+          var collection = db.GetCollection<RepoProduct>(PRODUCTS);
 
-        collection.EnsureIndex(x => x.Id);
-        collection.EnsureIndex(x => x.Name);
+          collection.EnsureIndex(x => x.Id);
+          collection.EnsureIndex(x => x.Name);
 
-        collection.Upsert(productList);
+          collection.Upsert(productList);
+        }
       }
-    }
 
   }
 }

@@ -1,11 +1,7 @@
 ﻿using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
+using WooCommerce.Repositories.Category;
 
 namespace WooCommerce.Http.SourceInstallation.Categories
 {
@@ -15,6 +11,7 @@ namespace WooCommerce.Http.SourceInstallation.Categories
     private readonly WordPressInstallation _installation;
     private readonly SemaphoreSlim _semaphore;
     private readonly int _requestDelayMs;
+    private readonly CategoryRepository _categoryRepository;
 
     public CategoryGetter(HttpClient httpClient, WordPressInstallation installation, int maxConcurrency = 3, int requestDelayMs = 100)
     {
@@ -22,14 +19,38 @@ namespace WooCommerce.Http.SourceInstallation.Categories
       _installation = installation ?? throw new ArgumentNullException(nameof(installation));
 
       _semaphore = new SemaphoreSlim(maxConcurrency);
-      _requestDelayMs = requestDelayMs; 
+      _requestDelayMs = requestDelayMs;
+      _categoryRepository = new CategoryRepository();
     }
 
+
     public async Task<List<CategorySource>> GetAllCategories()
+    {
+      _categoryRepository.DeleteCategories();
+
+      List<CategorySource> categorySource = await GetAllCategoriesDirect();
+
+      _categoryRepository.SaveCategories(categorySource.Select(c => new RepoCategory()
+      {
+        Slug = c.slug,
+        CategoryAtSource = c,
+        DateAdded = DateTime.UtcNow,
+        IdAtDestination = 0,
+        IdAtSource = c.id,
+      }));
+
+      Console.WriteLine($"{categorySource.Count()} categories saved");
+
+      return categorySource;
+    }
+
+
+    private async Task<List<CategorySource>> GetAllCategoriesDirect()
     {
       var allCategories = new List<CategorySource>();
       int page = 1;
       const int pageSize = 20;
+      int totalItems = 0;
 
       List<CategorySource> currentPageCategories;
 
@@ -38,6 +59,10 @@ namespace WooCommerce.Http.SourceInstallation.Categories
         currentPageCategories = await GetCategoriesPages(page, pageSize);
         allCategories.AddRange(currentPageCategories);
         page++;
+
+        totalItems += currentPageCategories.Count();
+
+        Console.WriteLine($"{totalItems} categories read");
       }
       while (currentPageCategories.Count == pageSize);
 
@@ -70,16 +95,16 @@ namespace WooCommerce.Http.SourceInstallation.Categories
         {
           r = JsonConvert.DeserializeObject<List<CategorySource>>(responseBody) ?? new List<CategorySource>();
         }
-        catch(Exception e)
+        catch (Exception e)
         {
         }
 
-        return r;     
+        return r;
       }
       finally
       {
-        await Task.Delay(_requestDelayMs); 
-        _semaphore.Release();          
+        await Task.Delay(_requestDelayMs);
+        _semaphore.Release();
       }
 
     }

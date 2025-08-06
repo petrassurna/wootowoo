@@ -8,6 +8,8 @@ using WooCommerce.Workers;
 using WooCommerce.Http.SourceInstallation.Structures;
 using WooCommerce.Repositories;
 using WooCommerce.Repositories.Summary;
+using WooCommerce.Http.SourceInstallation.Categories;
+using WooCommerce.Http.DestinationInstallation;
 
 internal class Program
 {
@@ -57,8 +59,8 @@ internal class Program
     ProductGetter productGetter = new ProductGetter(httpClient, config.Source);
     var products = await productGetter.GetAllProducts(importSummary.ProductsImported);
 
-    //CategoryGetter categoryGetter = new CategoryGetter(httpClient, config.Source);
-    //List<CategorySource> categories = await categoryGetter.GetAllCategories();
+    CategoryGetter categoryGetter = new CategoryGetter(httpClient, config.Source);
+    List<CategorySource> categories = await categoryGetter.GetAllCategories();
 
     //await Trash.EmptyWooCommerceTrashAsync(config.Destination);
 
@@ -99,16 +101,16 @@ internal class Program
 
     HttpClient httpClient = new HttpClient();
 
-    ProductGetter productGetter = new ProductGetter(httpClient, config.Source);
-    var products = await productGetter.GetAllProducts();
+    //ProductGetter productGetter = new ProductGetter(httpClient, config.Source);
+    //var products = await productGetter.GetAllProducts();
 
-    //CategoryGetter categoryGetter = new CategoryGetter(httpClient, config.Source);
-    //List<CategorySource> categories = await categoryGetter.GetAllCategories();
+    CategoryGetter categoryGetter = new CategoryGetter(httpClient, config.Source);
+    List<CategorySource> categories = await categoryGetter.GetAllCategories();
 
     //await Trash.EmptyWooCommerceTrashAsync(config.Destination);
 
-    //CategoryUploader categoryUploader = new CategoryUploader(httpClient, config.Destination);
-    //await categoryUploader.Upload(categories);
+    CategoryUploader categoryUploader = new CategoryUploader(httpClient, config.Destination);
+    await categoryUploader.Upload(categories);
 
     //?WooCommerce.Workers.ProductUploader productSetter = new WooCommerce.Workers.ProductUploader(httpClient, config.Destination);
     //?await productSetter.Upload(products);

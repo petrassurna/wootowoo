@@ -42,10 +42,10 @@ namespace WooCommerce.Http.SourceInstallation.Categories
   public class MediaFile
   {
     public int id { get; set; }
-    public DateTime date_created { get; set; }
-    public DateTime date_created_gmt { get; set; }
-    public DateTime date_modified { get; set; }
-    public DateTime date_modified_gmt { get; set; }
+    public DateTime? date_created { get; set; }
+    public DateTime? date_created_gmt { get; set; }
+    public DateTime? date_modified { get; set; }
+    public DateTime? date_modified_gmt { get; set; }
     public string src { get; set; }
     public string name { get; set; }
     public string alt { get; set; }
@@ -114,12 +114,48 @@ namespace WooCommerce.Http.SourceInstallation.Categories
     public int parent { get; set; }
     public string description { get; set; }
     public string display { get; set; }
-    public MediaFile image { get; set; }
+    public MediaFile? image { get; set; }
     public int menu_order { get; set; }
     public int count { get; set; }
     public string yoast_head { get; set; }
     public YoastHeadJson yoast_head_json { get; set; }
     public Links _links { get; set; }
+
+    public CategorySourceNoImage CategorySourceExistingImage(int mediaId)
+    {
+      return new CategorySourceNoImage()
+      {
+        id = id,
+        name = name,
+        slug = slug,
+        parent = parent,
+        description = description,
+        display = display,
+        menu_order = menu_order,
+        count = count,
+        yoast_head = yoast_head,
+        yoast_head_json = yoast_head_json,
+        _links = _links,
+        imageId = mediaId
+      };
+    }
+  }
+
+
+  public class CategorySourceNoImage
+  {
+    public int id { get; set; }
+    public string name { get; set; }
+    public string slug { get; set; }
+    public int parent { get; set; }
+    public string description { get; set; }
+    public string display { get; set; }
+    public int menu_order { get; set; }
+    public int count { get; set; }
+    public string yoast_head { get; set; }
+    public YoastHeadJson yoast_head_json { get; set; }
+    public Links _links { get; set; }
+    public int imageId { get; set; }
   }
 
   public class Schema

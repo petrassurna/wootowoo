@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace WooCommerce.Http.DestinationInstallation
+﻿namespace WooCommerce.Http.DestinationInstallation
 {
 
   public class Collection
