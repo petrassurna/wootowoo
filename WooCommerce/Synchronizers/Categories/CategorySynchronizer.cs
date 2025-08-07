@@ -30,17 +30,15 @@ namespace WooCommerce.Synchronizers.Categories
       => await _categoryHttp.UploadCategory(HttpMethod.Post, category,
         0, $"{_destination.Url}/wp-json/wc/v3/products/categories");
 
-
-    private async Task<CategoryClassesDestination> UpdateCategory(CategorySource categoryToUpload, CategorySource categoryUploaded, int parent)
-      => await _categoryHttp.UploadCategory(HttpMethod.Put, categoryToUpload, parent,
-        $"{_destination.Url}/wp-json/wc/v3/products/categories/{categoryUploaded.id}");
-
-
     public async Task Synchronize(List<CategorySource> categories)
     {
       await UploadWithoutParents(categories);
       await UploadWithParents();
     }
+
+    private async Task<CategoryClassesDestination> UpdateCategory(CategorySource categoryToUpload, CategorySource categoryUploaded, int parent)
+      => await _categoryHttp.UploadCategory(HttpMethod.Put, categoryToUpload, parent,
+        $"{_destination.Url}/wp-json/wc/v3/products/categories/{categoryUploaded.id}");
 
 
     public async Task UploadWithParents()
@@ -66,20 +64,6 @@ namespace WooCommerce.Synchronizers.Categories
       }
     }
 
-    private async Task UploadWithoutParents(List<CategorySource> categories)
-    {
-      int count = 1;
-      int total = categories.Count();
-
-      foreach (var category in categories)
-      {
-        CategoryClassesDestination uploaded = await UploadCategory(category, count, total);
-
-        _categoryRepository.SaveUpdatedCategory(category, uploaded);
-
-        count++;
-      }
-    }
 
     private async Task<CategoryClassesDestination> UploadCategory(CategorySource originCategory, int count, int total)
     {
@@ -94,17 +78,17 @@ namespace WooCommerce.Synchronizers.Categories
 
       if (!hasBeenUploaded)
       {
-        categoryUploaded = await UploadNew(originCategory, count, total);
+        categoryUploaded = await UploadNewCategory(originCategory, count, total);
       }
       else
       {
-        categoryUploaded = await UploadExisting(originCategory, destinationCategory.First(), count, total);
+        categoryUploaded = await UploadExistingCategory(originCategory, destinationCategory.First(), count, total);
       }
 
       return categoryUploaded;
     }
 
-    private async Task<CategoryClassesDestination> UploadExisting(CategorySource originCategory, CategorySource destinationCategory, int count, int total)
+    private async Task<CategoryClassesDestination> UploadExistingCategory(CategorySource originCategory, CategorySource destinationCategory, int count, int total)
     {
       CategoryClassesDestination categoryUploaded = null;
 
@@ -158,10 +142,8 @@ namespace WooCommerce.Synchronizers.Categories
       return categoryUploaded;
     }
 
-    private async Task<CategoryClassesDestination> UploadNew(CategorySource category, int count, int total)
+    private async Task<CategoryClassesDestination> UploadNewCategory(CategorySource category, int count, int total)
     {
-      List<CategorySource> existingUploadedCategory = await _categoryHttp.ExistingCategories(category.slug);
-
       CategoryClassesDestination categoryUploaded = await AddCategory(category);
 
       _categoryRepository.SaveNewUploadedCategory(category, categoryUploaded);
@@ -170,6 +152,22 @@ namespace WooCommerce.Synchronizers.Categories
 
       return categoryUploaded;
     }
+
+    private async Task UploadWithoutParents(List<CategorySource> categories)
+    {
+      int count = 1;
+      int total = categories.Count();
+
+      foreach (var category in categories)
+      {
+        CategoryClassesDestination uploaded = await UploadCategory(category, count, total);
+
+        _categoryRepository.SaveUpdatedCategory(category, uploaded);
+
+        count++;
+      }
+    }
+
 
 
   }

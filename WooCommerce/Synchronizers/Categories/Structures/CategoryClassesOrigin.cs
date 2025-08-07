@@ -3,9 +3,7 @@ using WooCommerce.Http.Media;
 using WooCommerce.Synchronizers.Categories.Structures.Destination;
 
 namespace WooCommerce.Synchronizers.Categories.Structures.Origin
-
 {
-
 
   public class Breadcrumb
   {

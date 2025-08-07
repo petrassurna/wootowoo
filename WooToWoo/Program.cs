@@ -12,18 +12,21 @@ using WooCommerce.Http.SourceInstallation.Categories;
 using WooCommerce.Synchronizers.Categories;
 using WooCommerce.Synchronizers.Categories.Structures;
 using WooCommerce.Synchronizers.Categories.Structures.Origin;
+using Microsoft.Extensions.DependencyInjection;
 
 internal class Program
 {
   private static async Task Main(string[] args)
   {
 
-    await Start(args);
+    var httpClient = new HttpClient();
+
+    await Start(args, httpClient);
 
   }
 
 
-  private static async Task Start(string[] args)
+  private static async Task Start(string[] args, HttpClient httpClient)
   {
 
     if (!await Internet.HasInternetAsync())
@@ -32,11 +35,11 @@ internal class Program
     }
     else if (args.Length == 0)
     {
-      await ImportFromScratch();
+      await ImportFromScratch(httpClient);
     }
     else if (args[0].ToLower() == "r")
     {
-      await ResumeImport();
+      await ResumeImport(httpClient);
     }
   }
 
@@ -47,7 +50,7 @@ internal class Program
   /// </summary>
   /// <returns></returns>
 
-  private static async Task ResumeImport()
+  private static async Task ResumeImport(HttpClient httpClient)
   {
     Config config = Config();
 
@@ -67,8 +70,6 @@ internal class Program
     }
 
     Console.WriteLine($"Resuming migration from {config.Source.Url}");
-
-    HttpClient httpClient = new HttpClient();
 
     //ProductGetter productGetter = new ProductGetter(httpClient, config.Source);
     //var products = await productGetter.GetAllProducts(importSummary.ProductsImported);
@@ -102,7 +103,7 @@ internal class Program
 
 
 
-  private static async Task ImportFromScratch()
+  private static async Task ImportFromScratch(HttpClient httpClient)
   {
     Config config = Config();
     Location.Delete();
@@ -115,8 +116,6 @@ internal class Program
     //try
     //{
     var sw = Stopwatch.StartNew();
-
-    HttpClient httpClient = new HttpClient();
 
     //ProductGetter productGetter = new ProductGetter(httpClient, config.Source);
     //var products = await productGetter.GetAllProducts();
