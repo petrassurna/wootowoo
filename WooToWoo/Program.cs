@@ -33,6 +33,11 @@ internal class Program
 
 
 
+  /// <summary>
+  /// r option
+  /// </summary>
+  /// <returns></returns>
+
   private static async Task ResumeImport()
   {
     Config config = Config();
@@ -56,11 +61,14 @@ internal class Program
 
     HttpClient httpClient = new HttpClient();
 
-    ProductGetter productGetter = new ProductGetter(httpClient, config.Source);
-    var products = await productGetter.GetAllProducts(importSummary.ProductsImported);
+    //ProductGetter productGetter = new ProductGetter(httpClient, config.Source);
+    //var products = await productGetter.GetAllProducts(importSummary.ProductsImported);
 
     CategoryGetter categoryGetter = new CategoryGetter(httpClient, config.Source);
     List<CategorySource> categories = await categoryGetter.GetAllCategories();
+
+    CategoryUploader categoryUploader = new CategoryUploader(httpClient, config.Destination);
+    await categoryUploader.Upload(categories);
 
     //await Trash.EmptyWooCommerceTrashAsync(config.Destination);
 

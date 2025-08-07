@@ -149,7 +149,7 @@ namespace WooCommerce.Http.DestinationInstallation
       };
     }
 
-    public async Task<List<CategorySource>> CategoryExists(string slug)
+    public async Task<List<CategorySource>> ExistingCategories(string slug)
     {
       var requestUri = $"{_destination.Url}/wp-json/wc/v3/products/categories?slug={slug}";
 
@@ -183,7 +183,7 @@ namespace WooCommerce.Http.DestinationInstallation
 
 
     }
-    
+
 
 
     private bool MediaFilesEquivalent(string url1, string url2)
@@ -191,7 +191,7 @@ namespace WooCommerce.Http.DestinationInstallation
       if (url1 == null && url2 == null)
         return true;
 
-      if(!IsValidWebUri(url1) || !IsValidWebUri(url2))
+      if (!IsValidWebUri(url1) || !IsValidWebUri(url2))
       {
         return false;
       }
@@ -251,94 +251,211 @@ namespace WooCommerce.Http.DestinationInstallation
     public async Task Upload(List<CategorySource> categories)
     {
       await UploadWithoutParents(categories);
-      //await UploadWithParents();
+      await UploadWithParents();
     }
 
 
     public async Task UploadWithParents()
     {
-      throw new NotImplementedException();
+      int count = 1;
+      IEnumerable<RepoCategory> categories = _categoryRepository.GetCategories();
+      int total = categories.Where(c => c.CategoryAtSource.parent != 0).Count();
+
+      foreach (var category in categories.Where(c => c.CategoryAtSource.parent != 0))
+      {
+        var parentRow = categories.Single(c => c.SourceId == category.SourceParent);
+
+        if (category.DestinationParent != parentRow.DestinationId)
+        {
+          await UpdateCategoryParent(category.DestinationId, parentRow.DestinationId);
+
+          category.DestinationParent = parentRow.DestinationId;
+          _categoryRepository.SaveCategory(category);
+        }
+
+        Console.WriteLine($"{count}/{total} Updated parent for category {category.CategoryAtSource.name} to {parentRow.CategoryAtSource.name}");
+        count++;
+      }
+    }
+
+
+    public async Task<bool> UpdateCategoryParent(int categoryId, int newParentId)
+    {
+      var apiUrl = $"{_destination.Url}/wp-json/wc/v3/products/categories/{categoryId}";
+
+      var credentials = $"{_destination.Key}:{_destination.Secret}";
+      var base64Credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes(credentials));
+
+      using var httpClient = new HttpClient();
+      httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", base64Credentials);
+
+      var payload = new
+      {
+        parent = newParentId
+      };
+
+      var json = JsonConvert.SerializeObject(payload);
+      var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+      var response = await httpClient.PutAsync(apiUrl, content);
+
+      if (response.IsSuccessStatusCode)
+      {
+        return true;
+      }
+      else
+      {
+        var error = await response.Content.ReadAsStringAsync();
+        return false;
+      }
     }
 
 
     public async Task UploadWithoutParents(List<CategorySource> categories)
     {
+      int count = 1;
+      int total = categories.Count();
+
       foreach (var category in categories)
       {
-        await UploadCategory(category);
+        CategoryUploaded uploaded = await UploadCategory(category, count, total);
+
+        _categoryRepository.SaveUpdatedCategory(category, uploaded);
+
+        count++;
       }
     }
 
-    //need to check what happens when categories uploaded
-    //make one different,  is image reuploaded it shouldnt be
-    private async Task UploadCategory(CategorySource category)
+    private async Task<CategoryUploaded> UploadCategory(CategorySource originCategory, int count, int total)
     {
-      List<CategorySource> existingUploadedCategory = await CategoryExists(category.slug);
+      CategoryUploaded categoryUploaded = null;
+      List<CategorySource> destinationCategory = await ExistingCategories(originCategory.slug);
+      bool hasBeenUploaded = false;
 
-      if (!existingUploadedCategory.Any())
+      if (destinationCategory.Count() > 0)
       {
-        CategoryUploaded uploaded = await AddCategory(category);
-
-        _categoryRepository.SaveNewUploadedCategory(category, uploaded);
-        Console.WriteLine($"Category {category.name} saved");
+        hasBeenUploaded = true;
       }
-      else if (UpdateRequired(category, existingUploadedCategory.First()))
+
+      if (!hasBeenUploaded)
       {
-        var existingUploadedCategory_ = existingUploadedCategory.First();
-
-        //don't reupload the category image, it will create a duplicate
-        if (MediaFilesEquivalent(category.image, existingUploadedCategory_.image) && category.image != null)
-        {
-          var c = category.CategorySourceExistingImage(existingUploadedCategory_.image.id);
-          c.id = existingUploadedCategory_.id;
-
-          await CategoryUpdateHttp(c, 0, _destination.Url);
-        }
-        else
-        {
-          CategoryUploaded categoryUploaded = await UpdateCategory(category, existingUploadedCategory_, existingUploadedCategory.First().parent);
-          _categoryRepository.SaveUpdatedCategory(category, categoryUploaded);
-        }
-
-        Console.WriteLine($"Category {category.name} updated");
+        categoryUploaded = await UploadNew(originCategory, count, total);
       }
       else
       {
-        Console.WriteLine($"Category {category.name} is uploaded and up to date");
+        categoryUploaded = await UploadExisting(originCategory, destinationCategory.First(), count, total);
       }
 
+      return categoryUploaded;
     }
 
 
-    private bool UploadSuccessfull(CategorySource uploadedCategory, CategorySource sourceCategory)
+    private async Task<CategoryUploaded> UploadExisting(CategorySource originCategory, CategorySource destinationCategory, int count, int total)
+    {
+      CategoryUploaded categoryUploaded = null;
+
+      if (NeedToBeUploaded(destinationCategory, originCategory))
+      {
+        //don't reupload the category image, it will create a duplicate
+        if (MediaFilesEquivalent(originCategory.image, destinationCategory.image) && originCategory.image != null)
+        {
+          var c = originCategory.CategorySourceExistingImage(destinationCategory.image.id);
+          c.id = destinationCategory.id;
+
+          categoryUploaded = await CategoryUpdateHttp(c, destinationCategory.parent, _destination.Url);
+        }
+        else
+        {
+          categoryUploaded = await UpdateCategory(originCategory, destinationCategory, destinationCategory.parent);
+        }
+
+        Console.WriteLine($"{count}/{total} Category {originCategory.name} updated at {_destination.Uri}");
+      }
+      else
+      {
+        categoryUploaded = new CategoryUploaded()
+        {
+          description = destinationCategory.description,
+          display = destinationCategory.display,
+          id = destinationCategory.id,
+          image = Image(destinationCategory.image),
+          menu_order = destinationCategory.menu_order,
+          name = destinationCategory.name,
+          parent = destinationCategory.parent,
+          slug = destinationCategory.slug
+        };
+
+        Console.WriteLine($"{count}/{total} Category {originCategory.name} does not need updating at {_destination.Uri}");
+      }
+
+      return categoryUploaded;
+    }
+
+    private Image Image(MediaFile? image)
+    {
+      if (image == null) return null;
+
+      Image image1 = new Image()
+      {
+        alt = image.alt,
+        date_created = image.date_created,
+        date_created_gmt = image.date_created_gmt,
+        date_modified = image.date_modified,
+        date_modified_gmt = image.date_modified_gmt,
+        id = image.id,
+        name = image.name,
+        src = image.src
+      };
+
+      return image1;
+    }
+
+    private async Task<CategoryUploaded> UploadNew(CategorySource category, int count, int total)
+    {
+      List<CategorySource> existingUploadedCategory = await ExistingCategories(category.slug);
+
+      CategoryUploaded categoryUploaded = await AddCategory(category);
+
+      _categoryRepository.SaveNewUploadedCategory(category, categoryUploaded);
+      Console.WriteLine($"{count}/{total} Category {category.name} saved at {_destination.Uri}");
+
+
+      return categoryUploaded;
+    }
+
+
+    private async Task<bool> HasBeenUploaded(string slug) => (await ExistingCategories(slug)).Any();
+
+
+    private bool NeedToBeUploaded(CategorySource destinationCategory, CategorySource originCategory)
     {
 
-      if (uploadedCategory.name != sourceCategory.name)
+      if (destinationCategory.name != originCategory.name)
       {
-        return false;
+        return true;
       }
-      else if (uploadedCategory.slug != sourceCategory.slug)
+      else if (destinationCategory.slug != originCategory.slug)
       {
-        return false;
+        return true;
       }
-      else if (uploadedCategory.description != sourceCategory.description)
+      else if (destinationCategory.description != originCategory.description)
       {
-        return false;
+        return true;
       }
-      else if (uploadedCategory.display != sourceCategory.display)
+      else if (destinationCategory.display != originCategory.display)
       {
-        return false;
+        return true;
       }
-      else if (uploadedCategory.menu_order != sourceCategory.menu_order)
+      else if (destinationCategory.menu_order != originCategory.menu_order)
       {
-        return false;
+        return true;
       }
-      else if (!MediaFilesEquivalent(uploadedCategory.image?.src, sourceCategory.image?.src))
+      else if (!MediaFilesEquivalent(destinationCategory.image?.src, originCategory.image?.src))
       {
-        return false;
+        return true;
       }
 
-      return true;
+      return false;
     }
 
   }

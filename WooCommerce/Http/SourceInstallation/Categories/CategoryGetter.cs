@@ -30,16 +30,18 @@ namespace WooCommerce.Http.SourceInstallation.Categories
 
       List<CategorySource> categorySource = await GetAllCategoriesDirect();
 
-      _categoryRepository.SaveCategories(categorySource.Select(c => new RepoCategory()
+      _categoryRepository.SaveCategoriesIfNotPresent(categorySource.Select(c => new RepoCategory()
       {
         Slug = c.slug,
         CategoryAtSource = c,
         DateAdded = DateTime.UtcNow,
-        IdAtDestination = 0,
-        IdAtSource = c.id,
+        DestinationId = 0,
+        SourceId = c.id,
+        SourceParent = c.parent,
+        DestinationParent = 0
       }));
 
-      Console.WriteLine($"{categorySource.Count()} categories saved");
+      Console.WriteLine($"{categorySource.Count()} categories saved from {_installation.Url}");
 
       return categorySource;
     }
@@ -62,7 +64,7 @@ namespace WooCommerce.Http.SourceInstallation.Categories
 
         totalItems += currentPageCategories.Count();
 
-        Console.WriteLine($"{totalItems} categories read");
+        Console.WriteLine($"{totalItems} categories read from {_installation.Url}");
       }
       while (currentPageCategories.Count == pageSize);
 

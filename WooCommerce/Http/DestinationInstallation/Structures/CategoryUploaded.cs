@@ -9,10 +9,10 @@
   public class Image
   {
     public int id { get; set; }
-    public DateTime date_created { get; set; }
-    public DateTime date_created_gmt { get; set; }
-    public DateTime date_modified { get; set; }
-    public DateTime date_modified_gmt { get; set; }
+    public DateTime? date_created { get; set; }
+    public DateTime? date_created_gmt { get; set; }
+    public DateTime? date_modified { get; set; }
+    public DateTime? date_modified_gmt { get; set; }
     public string src { get; set; }
     public string name { get; set; }
     public string alt { get; set; }
@@ -34,8 +34,6 @@
     public string display { get; set; }
     public Image image { get; set; }
     public int menu_order { get; set; }
-    public int count { get; set; }
-    public Links _links { get; set; }
   }
 
   public class Self

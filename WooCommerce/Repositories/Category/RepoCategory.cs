@@ -8,13 +8,13 @@ namespace WooCommerce.Repositories.Category
     [BsonId]
     public string Slug { get; set; }
 
-    public int IdAtSource { get; set; }
+    public int DestinationId { get; set; }
 
-    public int IdAtDestination { get; set; }
+    public int DestinationParent { get; set; }
 
-    public int ParentAtSource { get; set; }
+    public int SourceId { get; set; }
 
-    public int ParentAtDestination { get; set; }
+    public int SourceParent { get; set; }
 
     public DateTime DateAdded { get; set; }
 
