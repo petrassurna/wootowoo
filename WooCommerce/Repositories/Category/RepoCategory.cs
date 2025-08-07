@@ -1,5 +1,6 @@
 ﻿using LiteDB;
-using WooCommerce.Http.SourceInstallation.Categories;
+using WooCommerce.Synchronizers.Categories.Structures;
+using WooCommerce.Synchronizers.Categories.Structures.Origin;
 
 namespace WooCommerce.Repositories.Category
 {

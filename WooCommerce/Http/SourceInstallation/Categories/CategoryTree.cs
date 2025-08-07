@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+﻿using WooCommerce.Synchronizers.Categories.Structures.Origin;
 
 namespace WooCommerce.Http.SourceInstallation.Categories
 {

@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <Folder Include="NewFolder\" />
+    <Folder Include="Synchronizers\Categories\Http\" />
   </ItemGroup>
 
 </Project>

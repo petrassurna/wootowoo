@@ -2,6 +2,8 @@
 using System.Net.Http.Headers;
 using System.Text;
 using WooCommerce.Repositories.Category;
+using WooCommerce.Synchronizers.Categories.Structures;
+using WooCommerce.Synchronizers.Categories.Structures.Origin;
 
 namespace WooCommerce.Http.SourceInstallation.Categories
 {

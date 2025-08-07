@@ -5,7 +5,8 @@ using System.Linq;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
-using WooCommerce.Http.SourceInstallation.Categories;
+using WooCommerce.Synchronizers.Categories.Structures;
+using WooCommerce.Synchronizers.Categories.Structures.Origin;
 
 namespace WooCommerce.Http.Media
 {

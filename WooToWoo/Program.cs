@@ -9,7 +9,9 @@ using WooCommerce.Http.SourceInstallation.Structures;
 using WooCommerce.Repositories;
 using WooCommerce.Repositories.Summary;
 using WooCommerce.Http.SourceInstallation.Categories;
-using WooCommerce.Http.DestinationInstallation;
+using WooCommerce.Synchronizers.Categories;
+using WooCommerce.Synchronizers.Categories.Structures;
+using WooCommerce.Synchronizers.Categories.Structures.Origin;
 
 internal class Program
 {
@@ -67,8 +69,8 @@ internal class Program
     CategoryGetter categoryGetter = new CategoryGetter(httpClient, config.Source);
     List<CategorySource> categories = await categoryGetter.GetAllCategories();
 
-    CategoryUploader categoryUploader = new CategoryUploader(httpClient, config.Destination);
-    await categoryUploader.Upload(categories);
+    CategorySynchronizer categoryUploader = new CategorySynchronizer(httpClient, config.Destination);
+    await categoryUploader.Synchronize(categories);
 
     //await Trash.EmptyWooCommerceTrashAsync(config.Destination);
 
@@ -117,8 +119,8 @@ internal class Program
 
     //await Trash.EmptyWooCommerceTrashAsync(config.Destination);
 
-    CategoryUploader categoryUploader = new CategoryUploader(httpClient, config.Destination);
-    await categoryUploader.Upload(categories);
+    CategorySynchronizer categoryUploader = new CategorySynchronizer(httpClient, config.Destination);
+    await categoryUploader.Synchronize(categories);
 
     //?WooCommerce.Workers.ProductUploader productSetter = new WooCommerce.Workers.ProductUploader(httpClient, config.Destination);
     //?await productSetter.Upload(products);

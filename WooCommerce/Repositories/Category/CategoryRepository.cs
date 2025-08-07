@@ -1,7 +1,8 @@
 ﻿using LiteDB;
-using WooCommerce.Http.DestinationInstallation;
-using WooCommerce.Http.SourceInstallation.Categories;
 using WooCommerce.Repositories.Products;
+using WooCommerce.Synchronizers.Categories.Structures;
+using WooCommerce.Synchronizers.Categories.Structures.Destination;
+using WooCommerce.Synchronizers.Categories.Structures.Origin;
 
 namespace WooCommerce.Repositories.Category
 {
@@ -92,7 +93,7 @@ namespace WooCommerce.Repositories.Category
       }
     }
 
-    public void SaveNewUploadedCategory(CategorySource category, CategoryUploaded uploaded)
+    public void SaveNewUploadedCategory(CategorySource category, CategoryClassesDestination uploaded)
     {
       RepoCategory repoCategory = new RepoCategory()
       {
@@ -108,7 +109,7 @@ namespace WooCommerce.Repositories.Category
     }
 
 
-    public void SaveUpdatedCategory(CategorySource category, CategoryUploaded uploaded)
+    public void SaveUpdatedCategory(CategorySource category, CategoryClassesDestination uploaded)
     {
       RepoCategory repoCategory = new RepoCategory()
       {
