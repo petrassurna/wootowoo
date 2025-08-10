@@ -1,0 +1,58 @@
+# Build artifacts
+bin/
+obj/
+out/
+[Bb]uild/
+
+# IDE stuff
+.vs/
+.vscode/
+.idea/
+*.sln.iml
+_ReSharper.Caches/
+*.DotSettings.user
+*.rsuser
+
+# User-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Logs & test output
+*.log
+TestResult*/
+TestResults/
+*.coverage
+*.coveragexml
+coverage*/
+
+# NuGet
+packages/
+*.nupkg
+*.snupkg
+!packages/build/
+!packages/repositories.config
+
+# Publish / artifacts
+artifacts/
+publish/
+*.pubxml
+*.pubxml.user
+
+# NCrunch
+*.[Nn]Crunch*
+_nCrunch_*
+.*crunch*.local.xml
+
+# StyleCop
+StyleCop.Cache
+
+# Local config overrides (keep appsettings.json, ignore local variants)
+appsettings.*.local.json
+*.local.settings.json
+
+# Misc
+*.dbmdl
+*.cache
+*.swp
