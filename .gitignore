@@ -56,3 +56,9 @@ appsettings.*.local.json
 *.dbmdl
 *.cache
 *.swp
+
+
+# Ignore all appsettings files
+appsettings.json
+appsettings.*.json
+*.local.settings.json

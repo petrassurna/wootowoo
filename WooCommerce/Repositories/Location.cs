@@ -6,8 +6,11 @@
     public static string DatabaseConnection() =>
       $"Filename={DatabaseFilename()}";
 
-    public static string DatabaseFilename() 
+    public static string DatabaseFilename()
       => $"{AppContext.BaseDirectory}database\\wootowoo.db";
+
+    public static string DatabaseFolder()
+      => $"{AppContext.BaseDirectory}database";
 
 
     public static bool DatabaseExists() => File.Exists(DatabaseFilename());

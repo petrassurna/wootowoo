@@ -55,6 +55,8 @@ namespace WooCommerce.Repositories.Summary
           ProductsImported = 0
         };
 
+        EnsureFolder();
+
         using (var db = new LiteDatabase(_connectionString))
         {
           var collection = db.GetCollection<ImportSummary>(IMPORT_SUMMARY);
@@ -63,6 +65,15 @@ namespace WooCommerce.Repositories.Summary
 
         return summary;
       }
+    }
+
+
+    private void EnsureFolder()
+    {
+      if (string.IsNullOrWhiteSpace(Location.DatabaseFolder()))
+        return; 
+
+      Directory.CreateDirectory(Location.DatabaseFolder()); 
     }
 
 
