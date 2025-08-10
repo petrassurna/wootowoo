@@ -1,0 +1,75 @@
+[
+
+
+
+
+
+  {
+    "id": 49417,
+    "name": "Diamond Leadlight Sashes",
+    "slug": "diamond-leadlight-sashes",
+    "permalink": "https:\/\/renovatorsparadisewebsite.kinsta.cloud\/product\/diamond-leadlight-sashes\/",
+    "date_created": "2017-07-19T14:41:15",
+    "date_created_gmt": "2017-07-19T04:41:15",
+    "date_modified": "2024-09-15T19:51:15",
+    "date_modified_gmt": "2024-09-15T09:51:15",
+    "type": "variable",
+    "status": "publish",
+    "featured": false,
+    "catalog_visibility": "visible",
+    "description": "<p>Huge house lot of diamond leadlight sashes salvaged from 7 million dollar Canterbury mansion. All sturdy hardwood construction with 3mm glass.<\/p>\n",
+    "short_description": "",
+    "sku": "1351",
+    "price": "95",
+    "regular_price": "",
+    "sale_price": "",
+    "date_on_sale_from": null,
+    "date_on_sale_from_gmt": null,
+    "date_on_sale_to": null,
+    "date_on_sale_to_gmt": null,
+    "on_sale": false,
+    "purchasable": true,
+    "total_sales": 0,
+    "virtual": false,
+    "downloadable": false,
+    "downloads": [],
+    "download_limit": -1,
+    "download_expiry": -1,
+    "external_url": "",
+    "button_text": "",
+    "tax_status": "taxable",
+    "tax_class": "",
+    "manage_stock": true,
+    "stock_quantity": 0,
+    "backorders": "no",
+    "backorders_allowed": false,
+    "backordered": false,
+    "low_stock_amount": null,
+    "sold_individually": false,
+    "weight": "",
+
+    "dimensions": {
+      "length": "",
+      "width": { "317059": "" },
+      "height": { "317059": "" }
+    },
+
+    "shipping_required": true,
+    "shipping_taxable": true,
+    "shipping_class": "",
+    "shipping_class_id": 0,
+    "reviews_allowed": false,
+    "average_rating": "0.00",
+    "rating_count": 0,
+    "upsell_ids": [],
+    "cross_sell_ids": [],
+    "parent_id": 0,
+    "purchase_note": "",
+
+    "tags": []
+
+ 
+
+  }
+
+]
