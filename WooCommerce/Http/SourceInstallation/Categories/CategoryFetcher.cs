@@ -72,6 +72,13 @@ namespace WooCommerce.Http.SourceInstallation.Categories
       return Fetch();
     }
 
+
+    public Task Fetch(IEnumerable<string> slugs, IEnumerable<int> productIds)
+    {
+      throw new NotImplementedException();
+    }
+
+
     private async Task<List<CategorySource>> GetAllCategoriesDirect(int page, int pageSize)
     {
       var allCategories = new List<CategorySource>();

@@ -50,12 +50,16 @@ namespace WooCommerce.Synchronising.Fetchers.Products
       //return products;
     }
 
+    public Task Fetch(IEnumerable<string> slugs, IEnumerable<int> productIds)
+    {
+      throw new NotImplementedException();
+    }
+
     private async Task Initialise()
     {
       int total = await _productHttp.GetTotalProductCountAsync();
       _importSummary.UpdateProductsAtSource(total);
     }
-
 
     private IEnumerable<IObtainer> Obtainers()
     {

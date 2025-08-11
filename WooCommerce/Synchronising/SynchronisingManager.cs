@@ -29,6 +29,16 @@ namespace WooCommerce.Synchronising
       }
     }
 
+    private async Task Fetch(IEnumerable<string> categorySlugs, IEnumerable<int> productIds)
+    {
+      foreach (var fetcher in Fetchers())
+      {
+        await fetcher.Fetch(categorySlugs, productIds);
+      }
+    }
+
+
+
     private IEnumerable<IFetcher> Fetchers()
     {
       yield return new ProductFetcher(_httpClient, _config.Source, _logger);
@@ -57,6 +67,34 @@ namespace WooCommerce.Synchronising
       var sw = Stopwatch.StartNew();
 
       await Fetch();
+      Push();
+
+      sw.Stop();
+      //Console.WriteLine($"Elapsed ms: {sw.ElapsedMilliseconds}");
+
+      importSummary.Complete();
+    }
+
+
+
+    /// <summary>
+    /// Limit Synchronise to certain categories and products
+    /// </summary>
+    /// <param name="categorySlugs"></param>
+    /// <param name="productIds"></param>
+    /// <returns></returns>
+    public async Task Synchronise(IEnumerable<string> categorySlugs, IEnumerable<int> productIds)
+    {
+      //Location.Delete();
+
+      ImportSummaryRepository importSummary = new ImportSummaryRepository();
+
+      Console.WriteLine($"Starting migration from {_config.Source.Url}");
+      importSummary.Create();
+
+      var sw = Stopwatch.StartNew();
+
+      await Fetch(categorySlugs, productIds);
       Push();
 
       sw.Stop();
