@@ -1,0 +1,1 @@
+﻿Docker compose files to test mutiple installation of WooCommerce to ensure WooToWoo works
