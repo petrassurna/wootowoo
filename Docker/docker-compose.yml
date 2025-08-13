@@ -1,0 +1,157 @@
+services:
+  db1:
+    image: mariadb:11
+    environment:
+      - MARIADB_DATABASE=wp1
+      - MARIADB_USER=wp
+      - MARIADB_PASSWORD=wp
+      - MARIADB_ROOT_PASSWORD=root
+    volumes:
+      - db1_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  wp1:
+    image: wordpress:php8.2-apache
+    ports: ["8001:80"]
+    environment:
+      - WORDPRESS_DB_HOST=db1
+      - WORDPRESS_DB_USER=wp
+      - WORDPRESS_DB_PASSWORD=wp
+      - WORDPRESS_DB_NAME=wp1
+    volumes:
+      - wp1_data:/var/www/html
+    depends_on:
+      db1:
+        condition: service_healthy
+
+  db2:
+    image: mariadb:11
+    environment:
+      - MARIADB_DATABASE=wp2
+      - MARIADB_USER=wp
+      - MARIADB_PASSWORD=wp
+      - MARIADB_ROOT_PASSWORD=root
+    volumes:
+      - db2_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  wp2:
+    image: wordpress:php8.2-apache
+    ports: ["8002:80"]
+    environment:
+      - WORDPRESS_DB_HOST=db2
+      - WORDPRESS_DB_USER=wp
+      - WORDPRESS_DB_PASSWORD=wp
+      - WORDPRESS_DB_NAME=wp2
+    volumes:
+      - wp2_data:/var/www/html
+    depends_on:
+      db2:
+        condition: service_healthy
+
+  db3:
+    image: mariadb:11
+    environment:
+      - MARIADB_DATABASE=wp3
+      - MARIADB_USER=wp
+      - MARIADB_PASSWORD=wp
+      - MARIADB_ROOT_PASSWORD=root
+    volumes:
+      - db3_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  wp3:
+    image: wordpress:php8.2-apache
+    ports: ["8003:80"]
+    environment:
+      - WORDPRESS_DB_HOST=db3
+      - WORDPRESS_DB_USER=wp
+      - WORDPRESS_DB_PASSWORD=wp
+      - WORDPRESS_DB_NAME=wp3
+    volumes:
+      - wp3_data:/var/www/html
+    depends_on:
+      db3:
+        condition: service_healthy
+
+  db4:
+    image: mariadb:11
+    environment:
+      - MARIADB_DATABASE=wp4
+      - MARIADB_USER=wp
+      - MARIADB_PASSWORD=wp
+      - MARIADB_ROOT_PASSWORD=root
+    volumes:
+      - db4_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  wp4:
+    image: wordpress:php8.2-apache
+    ports: ["8004:80"]
+    environment:
+      - WORDPRESS_DB_HOST=db4
+      - WORDPRESS_DB_USER=wp
+      - WORDPRESS_DB_PASSWORD=wp
+      - WORDPRESS_DB_NAME=wp4
+    volumes:
+      - wp4_data:/var/www/html
+    depends_on:
+      db4:
+        condition: service_healthy
+
+  db5:
+    image: mariadb:11
+    environment:
+      - MARIADB_DATABASE=wp5
+      - MARIADB_USER=wp
+      - MARIADB_PASSWORD=wp
+      - MARIADB_ROOT_PASSWORD=root
+    volumes:
+      - db5_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  wp5:
+    image: wordpress:php8.2-apache
+    ports: ["8005:80"]
+    environment:
+      - WORDPRESS_DB_HOST=db5
+      - WORDPRESS_DB_USER=wp
+      - WORDPRESS_DB_PASSWORD=wp
+      - WORDPRESS_DB_NAME=wp5
+    volumes:
+      - wp5_data:/var/www/html
+    depends_on:
+      db5:
+        condition: service_healthy
+
+volumes:
+  db1_data: {}
+  db2_data: {}
+  db3_data: {}
+  db4_data: {}
+  db5_data: {}
+  wp1_data: {}
+  wp2_data: {}
+  wp3_data: {}
+  wp4_data: {}
+  wp5_data: {}
