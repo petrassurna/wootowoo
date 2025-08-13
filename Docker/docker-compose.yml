@@ -9,10 +9,10 @@ services:
     volumes:
       - db1_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uwp -p$MARIADB_PASSWORD --silent"]
       interval: 5s
-      timeout: 3s
-      retries: 20
+      timeout: 5s
+      retries: 60
 
   wp1:
     image: wordpress:php8.2-apache
@@ -38,10 +38,10 @@ services:
     volumes:
       - db2_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uwp -p$MARIADB_PASSWORD --silent"]
       interval: 5s
-      timeout: 3s
-      retries: 20
+      timeout: 5s
+      retries: 60
 
   wp2:
     image: wordpress:php8.2-apache
@@ -67,10 +67,10 @@ services:
     volumes:
       - db3_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uwp -p$MARIADB_PASSWORD --silent"]
       interval: 5s
-      timeout: 3s
-      retries: 20
+      timeout: 5s
+      retries: 60
 
   wp3:
     image: wordpress:php8.2-apache
@@ -96,10 +96,10 @@ services:
     volumes:
       - db4_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uwp -p$MARIADB_PASSWORD --silent"]
       interval: 5s
-      timeout: 3s
-      retries: 20
+      timeout: 5s
+      retries: 60
 
   wp4:
     image: wordpress:php8.2-apache
@@ -125,10 +125,10 @@ services:
     volumes:
       - db5_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uwp -p$MARIADB_PASSWORD --silent"]
       interval: 5s
-      timeout: 3s
-      retries: 20
+      timeout: 5s
+      retries: 60
 
   wp5:
     image: wordpress:php8.2-apache

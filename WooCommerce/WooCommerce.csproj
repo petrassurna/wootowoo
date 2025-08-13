@@ -23,7 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Synchronising\Pushing\" />
+    <Folder Include="Migrators\" />
   </ItemGroup>
 
 </Project>

@@ -6,9 +6,9 @@ using WooCommerce.Synchronising.Fetchers.Categories.Http;
 using WooCommerce.Synchronising.Fetchers.Categories.Structures;
 using WooCommerce.Synchronising.Fetching.Categories.Structures;
 
-namespace WooCommerce.Synchronising.Fetchers.Categories
+namespace WooCommerce.Synchronising.Pushing.Categories
 {
-  public class CategoryFetcher
+  public class CategoryPusher : IPusher
   {
 
     HttpClient _httpClient;
@@ -17,8 +17,9 @@ namespace WooCommerce.Synchronising.Fetchers.Categories
     CategoryRepository _categoryRepository;
     CategoryHttp _categoryHttp;
     ILogger _logger;
+    IEnumerable<CategorySource> _categories;
 
-    public CategoryFetcher(HttpClient httpClient, WordPressInstallation destination, ILogger logger)
+    public CategoryPusher(HttpClient httpClient, WordPressInstallation destination, ILogger logger, IEnumerable<CategorySource> categories)
     {
       _httpClient = httpClient;
       _destination = destination;
@@ -26,6 +27,7 @@ namespace WooCommerce.Synchronising.Fetchers.Categories
       _categoryRepository = new CategoryRepository();
       _categoryHttp = new CategoryHttp(_httpClient, _destination, logger);
       _logger = logger;
+      _categories = categories;
 
     }
 
@@ -33,11 +35,13 @@ namespace WooCommerce.Synchronising.Fetchers.Categories
       => await _categoryHttp.UploadCategory(HttpMethod.Post, category,
         0, $"{_destination.Url}/wp-json/wc/v3/products/categories");
 
-    public async Task Synchronize(List<CategorySource> categories)
+
+    public async Task Push()
     {
-      await UploadWithoutParents(categories);
+      await UploadWithoutParents();
       await UploadWithParents();
     }
+
 
     private async Task<CategoryClassesDestination> UpdateCategory(CategorySource categoryToUpload, CategorySource categoryUploaded, int parent)
       => await _categoryHttp.UploadCategory(HttpMethod.Put, categoryToUpload, parent,
@@ -47,7 +51,7 @@ namespace WooCommerce.Synchronising.Fetchers.Categories
     private async Task UploadWithParents()
     {
       int count = 1;
-      IEnumerable<RepoCategory> categories = _categoryRepository.GetCategories();
+      IEnumerable<RepositoryCategory> categories = _categoryRepository.GetCategories();
       int total = categories.Where(c => c.CategoryAtSource.parent != 0).Count();
 
       foreach (var category in categories.Where(c => c.CategoryAtSource.parent != 0))
@@ -156,12 +160,12 @@ namespace WooCommerce.Synchronising.Fetchers.Categories
       return categoryUploaded;
     }
 
-    private async Task UploadWithoutParents(List<CategorySource> categories)
+    private async Task UploadWithoutParents()
     {
       int count = 1;
-      int total = categories.Count();
+      int total = _categories.Count();
 
-      foreach (var category in categories)
+      foreach (var category in _categories)
       {
         CategoryClassesDestination uploaded = await UploadCategory(category, count, total);
 
@@ -170,7 +174,6 @@ namespace WooCommerce.Synchronising.Fetchers.Categories
         count++;
       }
     }
-
 
 
   }

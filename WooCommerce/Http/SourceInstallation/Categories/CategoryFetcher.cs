@@ -49,10 +49,12 @@ namespace WooCommerce.Http.SourceInstallation.Categories
       }
 
       page = (int)Math.Floor(Convert.ToDecimal((countInRepo / PAGE_SIZE)));
+      if (page == 0)
+        page = 1;
 
       List<CategorySource> categorySource = await GetAllCategoriesDirect(page, PAGE_SIZE);
 
-      _categoryRepository.SaveCategoriesIfNotPresent(categorySource.Select(c => new RepoCategory()
+      _categoryRepository.SaveCategoriesIfNotPresent(categorySource.Select(c => new RepositoryCategory()
       {
         Slug = c.slug,
         CategoryAtSource = c,
@@ -122,14 +124,7 @@ namespace WooCommerce.Http.SourceInstallation.Categories
         var responseBody = await response.Content.ReadAsStringAsync();
 
         List<CategorySource> r = new List<CategorySource>();
-
-        try
-        {
-          r = JsonConvert.DeserializeObject<List<CategorySource>>(responseBody) ?? new List<CategorySource>();
-        }
-        catch (Exception e)
-        {
-        }
+        r = JsonConvert.DeserializeObject<List<CategorySource>>(responseBody) ?? new List<CategorySource>();
 
         return r;
       }

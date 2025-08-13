@@ -1,10 +1,12 @@
 ﻿using System.Diagnostics;
 using WooCommerce.Http.SourceInstallation.Categories;
 using WooCommerce.Repositories.Summary;
-using WooCommerce.Synchronising.Fetchers.Products;
 using WooCommerce.Synchronising.Fetchers;
 using WooCommerce.Configuration;
 using Microsoft.Extensions.Logging;
+using WooCommerce.Repositories.Category;
+using WooCommerce.Synchronising.Pushing.Categories;
+using WooCommerce.Synchronising.Pushing;
 
 namespace WooCommerce.Synchronising
 {
@@ -37,21 +39,35 @@ namespace WooCommerce.Synchronising
       }
     }
 
-
-
     private IEnumerable<IFetcher> Fetchers()
     {
-      yield return new ProductFetcher(_httpClient, _config.Source, _logger);
+      //yield return new ProductFetcher(_httpClient, _config.Source, _logger);
       yield return new CategoryFetcher(_httpClient, _config.Source, _logger);
     }
 
-    private void Push()
-    {
-      //CategorySynchronizer categoryUploader = new CategorySynchronizer(httpClient, config.Destination);
-      //await categoryUploader.Synchronize(categories);
 
-      //?WooCommerce.Workers.ProductUploader productSetter = new WooCommerce.Workers.ProductUploader(httpClient, config.Destination);
-      //?await productSetter.Upload(products);
+    private IEnumerable<IPusher> Pushers()
+    {
+      CategoryRepository categoryRepository = new CategoryRepository();
+
+      yield return new CategoryPusher(_httpClient, _config.Source, _logger, categoryRepository.GetAllCategorySource());
+    }
+
+
+    private async Task Push()
+    {
+
+      foreach (var pusher in Pushers())
+      {
+        await pusher.Push();
+      }
+    
+      
+      //CategoryRepository categoryRepository = new CategoryRepository();
+      //IEnumerable<RepositoryCategory> categories = categoryRepository.GetCategories();
+
+      //WooCommerce.Workers.ProductUploader productSetter = new WooCommerce.Workers.ProductUploader(httpClient, config.Destination);
+      //await productSetter.Upload(products);
     }
 
 
@@ -67,7 +83,7 @@ namespace WooCommerce.Synchronising
       var sw = Stopwatch.StartNew();
 
       await Fetch();
-      Push();
+      await Push();
 
       sw.Stop();
       //Console.WriteLine($"Elapsed ms: {sw.ElapsedMilliseconds}");
@@ -95,7 +111,7 @@ namespace WooCommerce.Synchronising
       var sw = Stopwatch.StartNew();
 
       await Fetch(categorySlugs, productIds);
-      Push();
+      await Push();
 
       sw.Stop();
       //Console.WriteLine($"Elapsed ms: {sw.ElapsedMilliseconds}");

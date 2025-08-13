@@ -35,7 +35,11 @@ internal class Program
     });
     ILogger logger = loggerFactory.CreateLogger("WooToWoo");
 
-    await Start(args, httpClient, logger, config);
+    //if(await config.IsValid(httpClient, logger))
+    {
+      await Start(args, httpClient, logger, config);
+    }
+
   }
 
 

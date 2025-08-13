@@ -4,7 +4,7 @@ using WooCommerce.Synchronising.Fetchers.Categories.Structures;
 
 namespace WooCommerce.Repositories.Category
 {
-  public class RepoCategory
+  public class RepositoryCategory
   {
     [BsonId]
     public string Slug { get; set; }

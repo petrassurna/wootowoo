@@ -37,13 +37,18 @@ namespace WooCommerce.Repositories.Category
     }
 
 
-    public IEnumerable<RepoCategory> GetCategories()
+    public IEnumerable<CategorySource> GetAllCategorySource() 
+      => GetCategories().Select(c => c.CategoryAtSource);
+
+
+
+    public IEnumerable<RepositoryCategory> GetCategories()
     {
       lock (_lock)
       {
         using var db = new LiteDatabase(_connectionString);
 
-        var collection = db.GetCollection<RepoCategory>(CATEGORIES);
+        var collection = db.GetCollection<RepositoryCategory>(CATEGORIES);
         return collection.FindAll().ToList();
       }
     }
@@ -62,12 +67,12 @@ namespace WooCommerce.Repositories.Category
     }
 
 
-    public void SaveCategoriesIfNotPresent(IEnumerable<RepoCategory> repoCategories)
+    public void SaveCategoriesIfNotPresent(IEnumerable<RepositoryCategory> repoCategories)
     {
       lock (_lock)
       {
         using var db = new LiteDatabase(_connectionString);
-        var collection = db.GetCollection<RepoCategory>("Categories");
+        var collection = db.GetCollection<RepositoryCategory>("Categories");
 
         foreach (var repo in repoCategories)
         {
@@ -81,20 +86,20 @@ namespace WooCommerce.Repositories.Category
 
 
 
-    public void SaveCategory(RepoCategory repoCategory)
+    public void SaveCategory(RepositoryCategory repoCategory)
     {
       lock (_lock)
       {
         using var db = new LiteDatabase(_connectionString);
 
-        var collection = db.GetCollection<RepoCategory>(CATEGORIES);
+        var collection = db.GetCollection<RepositoryCategory>(CATEGORIES);
         collection.Upsert(repoCategory);
       }
     }
 
     public void SaveNewUploadedCategory(CategorySource category, CategoryClassesDestination uploaded)
     {
-      RepoCategory repoCategory = new RepoCategory()
+      RepositoryCategory repoCategory = new RepositoryCategory()
       {
         CategoryAtSource = category,
         DateAdded = DateTime.UtcNow,
@@ -110,7 +115,7 @@ namespace WooCommerce.Repositories.Category
 
     public void SaveUpdatedCategory(CategorySource category, CategoryClassesDestination uploaded)
     {
-      RepoCategory repoCategory = new RepoCategory()
+      RepositoryCategory repoCategory = new RepositoryCategory()
       {
         CategoryAtSource = category,
         DestinationId = uploaded.id,

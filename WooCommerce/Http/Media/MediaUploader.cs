@@ -27,7 +27,7 @@ namespace WooCommerce.Http.Media
       using var request = new HttpRequestMessage(HttpMethod.Get, requestUri);
 
       // Add Basic Auth header
-      var credentials = $"{_installation.WordPressUser.ApplicationPasswordName}:{_installation.WordPressUser.ApplicationPassword}";
+      var credentials = $"{_installation.WordPressAPIUser.Username}:{_installation.WordPressAPIUser.password}";
       var base64Credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes(credentials));
       request.Headers.Authorization = new AuthenticationHeaderValue("Basic", base64Credentials);
 
@@ -71,7 +71,7 @@ namespace WooCommerce.Http.Media
       using var request = new HttpRequestMessage(HttpMethod.Post, requestUri);
 
       // Basic Auth
-      var credentials = $"{_installation.WordPressUser.ApplicationPasswordName}:{_installation.WordPressUser.ApplicationPassword}";
+      var credentials = $"{_installation.WordPressAPIUser.Username}:{_installation.WordPressAPIUser.password}";
       var base64Credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes(credentials));
       request.Headers.Authorization = new AuthenticationHeaderValue("Basic", base64Credentials);
 
@@ -114,7 +114,7 @@ namespace WooCommerce.Http.Media
         Content = new StringContent(metadataJson, Encoding.UTF8, "application/json")
       };
 
-      var credentials = $"{_installation.WordPressUser.ApplicationPasswordName}:{_installation.WordPressUser.ApplicationPassword}";
+      var credentials = $"{_installation.WordPressAPIUser.Username}:{_installation.WordPressAPIUser.password}";
       var base64Credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes(credentials));
       request.Headers.Authorization = new AuthenticationHeaderValue("Basic", base64Credentials);
 

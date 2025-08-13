@@ -4,9 +4,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace WooCommerce.Migrators.Categories
+namespace WooCommerce.Synchronising.Pushing
 {
-    public class CategoryMigrator
-    {
-    }
+  public interface IPusher
+  {
+    public Task Push();
+  }
 }
