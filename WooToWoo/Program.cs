@@ -4,6 +4,7 @@ using WooCommerce.Synchronising;
 using WooCommerce.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
+using WooCommerce.Http;
 
 internal class Program
 {
@@ -35,7 +36,9 @@ internal class Program
     });
     ILogger logger = loggerFactory.CreateLogger("WooToWoo");
 
-    //if(await config.IsValid(httpClient, logger))
+    (bool ok, string message) = await config.IsValid(httpClient, logger);
+    
+    if(ok)
     {
       await Start(args, httpClient, logger, config);
     }

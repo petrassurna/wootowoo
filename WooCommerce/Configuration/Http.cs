@@ -2,25 +2,63 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using System.Net.Http;
 
 namespace WooCommerce.Configuration
 {
   public class Http
   {
 
-    public static async Task<(bool ok, string message)> IsValid(
+    public static async Task<(bool ok, string message)> IsValidWooCommerceRead(
+       string baseUrl,
+       string key,
+       string secret,
+              HttpClient http,
+       CancellationToken ct = default)
+    {
+      var url = $"{baseUrl.TrimEnd('/')}/wp-json/wc/v3/products/categories?per_page=1";
+
+      using var req = new HttpRequestMessage(HttpMethod.Get, url);
+
+      // UA: some hosts reject requests without it
+      req.Headers.UserAgent.ParseAdd("WooToWoo/1.0");
+
+      // WooCommerce accepts consumer key/secret via Basic auth
+      var token = Convert.ToBase64String(
+          System.Text.Encoding.ASCII.GetBytes($"{key}:{secret}")
+      );
+      req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", token);
+
+      try
+      {
+        using var resp = await http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, ct);
+        resp.EnsureSuccessStatusCode();
+
+        if (resp.Headers.TryGetValues("X-WP-Total", out var values) &&
+            int.TryParse(values.FirstOrDefault(), out var total))
+        {
+          return (true, $"Destination {baseUrl} API key is authorized for WooCommerce read.");
+        }
+
+        return (false, $"Destination {baseUrl} API key is not authorized for WooCommerce read.");
+      }
+      catch(Exception e)
+      {
+        return (false, $"Destination {baseUrl} API key is not authorized for WooCommerce read - {e.Message}");
+      }
+    }
+
+
+    public static async Task<(bool ok, string message)> IsValidWordPressReadWrite(
       string baseUrl,
       string username,
       string applicationPassword,
+       HttpClient http,
       CancellationToken ct = default)
     {
       if (string.IsNullOrWhiteSpace(baseUrl)) return (false, "Base URL is required.");
       baseUrl = baseUrl.TrimEnd('/');
 
-      using var http = new HttpClient
-      {
-        Timeout = TimeSpan.FromSeconds(30)
-      };
 
       // Some hosts reject requests without a UA.
       http.DefaultRequestHeaders.UserAgent.ParseAdd("WP-Write-Test/1.0");
@@ -80,14 +118,16 @@ namespace WooCommerce.Configuration
         var deleteResp = await http.DeleteAsync(deleteEndpoint, ct);
         // Some hosts block DELETE; creation alone proves write.
         if (deleteResp.IsSuccessStatusCode)
-          return (true, "Write OK: draft created and deleted.");
+          return (true, $"Destination {baseUrl} API key is authorized for read and write");
         else
-          return (true, "Write OK: draft created. Delete failed (likely server rule), but write is confirmed.");
+          return (false, $"Destination {baseUrl} API key write OK. Delete failed (likely server rule), but write access is confirmed");
       }
       catch
       {
-        return (true, "Write OK: draft created. Delete not attempted/failed, but write is confirmed.");
+        return (false, $"Destination {baseUrl} API key write OK. Draft created. Delete not attempted/failed, but write is confirmed.");
       }
     }
+
+
   }
 }

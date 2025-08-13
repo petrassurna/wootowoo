@@ -137,7 +137,7 @@ namespace WooCommerce.Workers
             using (var httpClient = new HttpClient())
             {
               var username = _installation.WordPressAPIUser.Username; // WordPress admin username
-              var appPassword = _installation.WordPressAPIUser.password; // WordPress Application Password
+              var appPassword = _installation.WordPressAPIUser.Password; // WordPress Application Password
               var byteArray = Encoding.ASCII.GetBytes($"{username}:{appPassword}");
               httpClient.DefaultRequestHeaders.Authorization =
                   new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(byteArray));
@@ -246,7 +246,7 @@ namespace WooCommerce.Workers
         var jsonPayload = JsonConvert.SerializeObject(payload);
         var content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
 
-        var authToken = Convert.ToBase64String(Encoding.ASCII.GetBytes($"{_installation.WordPressAPIUser.Username}:{_installation.WordPressAPIUser.password}"));
+        var authToken = Convert.ToBase64String(Encoding.ASCII.GetBytes($"{_installation.WordPressAPIUser.Username}:{_installation.WordPressAPIUser.Password}"));
         _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", authToken);
 
         var response = await _httpClient.PostAsync($"{_installation.Url}/wp-json/wc/v3/products/{productId}", content);
