@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using WooCommerce.Repositories.Category;
 using WooCommerce.Synchronising.Pushing.Categories;
 using WooCommerce.Synchronising.Pushing;
+using WooCommerce.Repositories;
 
 namespace WooCommerce.Synchronising
 {
@@ -31,7 +32,7 @@ namespace WooCommerce.Synchronising
       }
     }
 
-    private async Task Fetch(IEnumerable<string> categorySlugs, IEnumerable<int> productIds)
+    private async Task Fetch(IEnumerable<string> categorySlugs, IEnumerable<string> productIds)
     {
       foreach (var fetcher in Fetchers())
       {
@@ -99,9 +100,9 @@ namespace WooCommerce.Synchronising
     /// <param name="categorySlugs"></param>
     /// <param name="productIds"></param>
     /// <returns></returns>
-    public async Task Synchronise(IEnumerable<string> categorySlugs, IEnumerable<int> productIds)
+    public async Task Synchronise(IEnumerable<string> categorySlugs, IEnumerable<string> productIds)
     {
-      //Location.Delete();
+      Repository.Delete();
 
       ImportSummaryRepository importSummary = new ImportSummaryRepository();
 

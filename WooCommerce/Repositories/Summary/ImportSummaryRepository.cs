@@ -10,7 +10,7 @@ namespace WooCommerce.Repositories.Summary
 
     public ImportSummaryRepository()
     {
-      _connectionString = Location.DatabaseConnection();
+      _connectionString = Repository.DatabaseConnection();
     }
 
     public ImportSummaryRepository(string connectionString)
@@ -70,10 +70,10 @@ namespace WooCommerce.Repositories.Summary
 
     private void EnsureFolder()
     {
-      if (string.IsNullOrWhiteSpace(Location.DatabaseFolder()))
+      if (string.IsNullOrWhiteSpace(Repository.DatabaseFolder()))
         return; 
 
-      Directory.CreateDirectory(Location.DatabaseFolder()); 
+      Directory.CreateDirectory(Repository.DatabaseFolder()); 
     }
 
 

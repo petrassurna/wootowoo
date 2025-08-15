@@ -13,7 +13,7 @@ namespace WooCommerce.Repositories.Category
 
     public CategoryRepository()
     {
-      _connectionString = Location.DatabaseConnection();
+      _connectionString = Repository.DatabaseConnection();
     }
 
     public CategoryRepository(string connectionString)

@@ -1,6 +1,6 @@
 ﻿namespace WooCommerce.Repositories
 {
-  public class Location
+  public class Repository
   {
 
     public static string DatabaseConnection() =>

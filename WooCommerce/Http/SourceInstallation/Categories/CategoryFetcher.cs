@@ -75,7 +75,7 @@ namespace WooCommerce.Http.SourceInstallation.Categories
     }
 
 
-    public Task Fetch(IEnumerable<string> slugs, IEnumerable<int> productIds)
+    public Task Fetch(IEnumerable<string> slugs, IEnumerable<string> productIds)
     {
       throw new NotImplementedException();
     }

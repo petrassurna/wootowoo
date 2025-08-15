@@ -10,7 +10,7 @@ namespace WooCommerce.Repositories.Products
 
     public ProductRepository()
     {
-      _connectionString = Location.DatabaseConnection();
+      _connectionString = Repository.DatabaseConnection();
     }
 
     public ProductRepository(string connectionString)

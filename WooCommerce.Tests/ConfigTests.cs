@@ -2,14 +2,13 @@
 using Microsoft.Extensions.Logging.Abstractions;
 using Shouldly;
 using WooCommerce.Configuration;
-using WooCommerce.Http;
 namespace WooCommerce.Tests
 {
-  public class SynchroniseTests
+  public class ConfigTests
   {
 
     [Fact]
-    public async Task SynchroniseKeysOK()
+    public async Task ConfigHasCorrectPrivileges()
     {
       Config config = GetConfig();
 

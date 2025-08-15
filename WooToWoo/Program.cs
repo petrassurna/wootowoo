@@ -4,7 +4,6 @@ using WooCommerce.Synchronising;
 using WooCommerce.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
-using WooCommerce.Http;
 
 internal class Program
 {
