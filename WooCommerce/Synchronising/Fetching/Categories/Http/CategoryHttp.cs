@@ -133,7 +133,10 @@ namespace WooCommerce.Synchronising.Fetchers.Categories.Http
 
     public async Task<List<CategorySource>> ExistingCategories(string slug)
     {
-      var requestUri = $"{_destination.Url}/wp-json/wc/v3/products/categories?slug={slug}";
+
+      string baseUrl = _destination.Url.Trim().TrimEnd('/');
+
+      var requestUri = $"{baseUrl}/wp-json/wc/v3/products/categories?slug={slug}";
 
       using var request = new HttpRequestMessage(HttpMethod.Get, requestUri);
 

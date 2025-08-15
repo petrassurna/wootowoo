@@ -112,7 +112,12 @@ namespace WooCommerce.Synchronising.Pushing.Categories
         else
         {
           //does the image already exist?
-          int? mediaId = await _mediaUploader.GetMediaIdByFileName(Path.GetFileName(originCategory.image.src));
+          int? mediaId = null;
+
+          if (originCategory.image is not null)
+          {
+            mediaId = await _mediaUploader.GetMediaIdByFileName(Path.GetFileName(originCategory.image.src));
+          }
 
           if (mediaId is not null)
           {

@@ -13,89 +13,139 @@ namespace WooCommerce.Configuration
        string baseUrl,
        string key,
        string secret,
-              HttpClient http,
+       HttpClient http,
        CancellationToken ct = default)
     {
-      var url = $"{baseUrl.TrimEnd('/')}/wp-json/wc/v3/products/categories?per_page=1";
+      if (string.IsNullOrWhiteSpace(baseUrl)) return (false, "Base URL is required.");
+      if (string.IsNullOrWhiteSpace(key) || string.IsNullOrWhiteSpace(secret))
+        return (false, "Consumer key/secret are required.");
 
-      using var req = new HttpRequestMessage(HttpMethod.Get, url);
+      // Normalize base (use site root, not /wp-admin)
+      baseUrl = baseUrl.Trim().TrimEnd('/');
+      var i = baseUrl.IndexOf("/wp-admin", StringComparison.OrdinalIgnoreCase);
+      if (i >= 0) baseUrl = baseUrl[..i];
 
-      // UA: some hosts reject requests without it
-      req.Headers.UserAgent.ParseAdd("WooToWoo/1.0");
+      http.DefaultRequestHeaders.UserAgent.ParseAdd("WooToWoo/1.0");
 
-      // WooCommerce accepts consumer key/secret via Basic auth
-      var token = Convert.ToBase64String(
-          System.Text.Encoding.ASCII.GetBytes($"{key}:{secret}")
-      );
-      req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", token);
+      // Endpoints to try (pretty vs rest_route)
+      var pretty = $"{baseUrl}/wp-json/wc/v3/products/categories?per_page=1";
+      var restRoute = $"{baseUrl}/?rest_route=/wc/v3/products/categories&per_page=1";
 
-      try
+      // Helper: add ck/cs as query params (HTTP-friendly)
+      static string WithQueryAuth(string url, string ck, string cs)
       {
-        using var resp = await http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, ct);
-        resp.EnsureSuccessStatusCode();
+        var sep = url.Contains('?') ? "&" : "?";
+        return $"{url}{sep}consumer_key={Uri.EscapeDataString(ck)}&consumer_secret={Uri.EscapeDataString(cs)}";
+      }
 
-        if (resp.Headers.TryGetValues("X-WP-Total", out var values) &&
-            int.TryParse(values.FirstOrDefault(), out var total))
+      // Try in this order:
+      var attempts = new[]
+      {
+        new { Url = pretty,    UseBasic = true,  Label = "pretty + basic" },
+        new { Url = WithQueryAuth(pretty, key, secret),    UseBasic = false, Label = "pretty + query auth" },
+        new { Url = restRoute, UseBasic = true,  Label = "rest_route + basic" },
+        new { Url = WithQueryAuth(restRoute, key, secret), UseBasic = false, Label = "rest_route + query auth" },
+    };
+
+      HttpStatusCode? lastStatus = null;
+      string lastBody = "";
+
+      foreach (var a in attempts)
+      {
+        using var req = new HttpRequestMessage(HttpMethod.Get, a.Url);
+        if (a.UseBasic)
         {
-          return (true, $"Destination {baseUrl} API key is authorized for WooCommerce read.");
+          var token = Convert.ToBase64String(Encoding.ASCII.GetBytes($"{key}:{secret}"));
+          req.Headers.Authorization = new AuthenticationHeaderValue("Basic", token);
         }
 
-        return (false, $"Destination {baseUrl} API key is not authorized for WooCommerce read.");
+        HttpResponseMessage resp;
+        try
+        {
+          resp = await http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, ct);
+        }
+        catch (Exception ex)
+        {
+          lastStatus = null;
+          lastBody = $"HTTP error: {ex.Message}";
+          continue;
+        }
+
+        lastStatus = resp.StatusCode;
+        lastBody = await resp.Content.ReadAsStringAsync(ct);
+
+        if (resp.StatusCode == HttpStatusCode.Unauthorized)
+          return (false, $"401 Unauthorized ({a.Label}). On HTTP, servers often drop Authorization; try query auth or add HTTP_AUTHORIZATION pass-through in .htaccess. Body: {lastBody}");
+
+        if (resp.StatusCode == HttpStatusCode.Forbidden)
+          return (false, $"403 Forbidden ({a.Label}). Key may lack read permission or a security plugin is blocking REST. Body: {lastBody}");
+
+        if (resp.IsSuccessStatusCode)
+        {
+          // Success → read access confirmed
+          // (Optional) try to read X-WP-Total for extra info
+          int total = 0;
+          if (resp.Headers.TryGetValues("X-WP-Total", out var vals) &&
+              int.TryParse(vals.FirstOrDefault(), out var t)) total = t;
+
+          var extra = total > 0 ? $" Total categories (server header): {total}." : "";
+          return (true, $"WooCommerce read OK via {a.Label}.{extra}");
+        }
+
+        // else: try the next attempt (e.g., fall back to query auth or rest_route)
       }
-      catch(Exception e)
-      {
-        return (false, $"Destination {baseUrl} API key is not authorized for WooCommerce read - {e.Message}");
-      }
+
+      var statusText = lastStatus.HasValue ? $"{(int)lastStatus} {lastStatus}" : "no HTTP status";
+      return (false, $"Failed to read WooCommerce categories after all attempts. Last response: {statusText}. Body: {lastBody}");
     }
 
-
     public static async Task<(bool ok, string message)> IsValidWordPressReadWrite(
-      string baseUrl,
-      string username,
-      string applicationPassword,
-       HttpClient http,
-      CancellationToken ct = default)
+        string baseUrl,
+        string username,
+        string applicationPassword,
+        HttpClient http,
+        CancellationToken ct = default)
     {
       if (string.IsNullOrWhiteSpace(baseUrl)) return (false, "Base URL is required.");
-      baseUrl = baseUrl.TrimEnd('/');
+      baseUrl = baseUrl.Trim().TrimEnd('/');
+      var i = baseUrl.IndexOf("/wp-admin", StringComparison.OrdinalIgnoreCase);
+      if (i >= 0) baseUrl = baseUrl[..i];
 
-
-      // Some hosts reject requests without a UA.
       http.DefaultRequestHeaders.UserAgent.ParseAdd("WP-Write-Test/1.0");
 
-      // Basic auth: username:applicationPassword
-      var token = Convert.ToBase64String(Encoding.ASCII.GetBytes($"{username}:{applicationPassword}"));
-      http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", token);
+      // Where is REST?
+      var restPretty = $"{baseUrl}/wp-json/";
+      var restFallback = $"{baseUrl}/?rest_route=/";
+      var restBase = await TryOk(http, restPretty, ct) ? restPretty :
+                     await TryOk(http, restFallback, ct) ? restFallback : null;
+      if (restBase is null)
+        return (false, "REST not reachable at /wp-json or ?rest_route=. Check permalinks/.htaccess.");
 
-      // 1) Try to create a draft post (minimal payload)
-      var postEndpoint = $"{baseUrl}/wp-json/wp/v2/posts";
-      var payload = new
+      // Build request (request-scoped Authorization)
+      var pwd = (applicationPassword ?? "").Replace(" ", "");
+      var token = Convert.ToBase64String(Encoding.ASCII.GetBytes($"{username}:{pwd}"));
+      var postEndpoint = $"{restBase}wp/v2/posts";
+
+      var payload = new { title = "API write test (safe to delete)", status = "draft" };
+      using var req = new HttpRequestMessage(HttpMethod.Post, postEndpoint)
       {
-        title = "API write test (safe to delete)",
-        status = "draft"
+        Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json")
       };
+      req.Headers.Authorization = new AuthenticationHeaderValue("Basic", token);
 
-      using var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
       HttpResponseMessage createResp;
-      try
-      {
-        createResp = await http.PostAsync(postEndpoint, content, ct);
-      }
-      catch (Exception ex)
-      {
-        return (false, $"HTTP error while creating post: {ex.Message}");
-      }
+      try { createResp = await http.SendAsync(req, ct); }
+      catch (Exception ex) { return (false, $"HTTP error while creating post: {ex.Message}"); }
+
+      var body = await createResp.Content.ReadAsStringAsync(ct);
 
       if (createResp.StatusCode == HttpStatusCode.Unauthorized)
-        return (false, "Unauthorized (401): username or application password is wrong, or HTTPS required.");
+        return (false, $"401 Unauthorized. Check username (login name), app password, and that HTTP_AUTHORIZATION reaches PHP. Body: {body}");
       if (createResp.StatusCode == HttpStatusCode.Forbidden)
-        return (false, "Forbidden (403): user lacks permission to create posts.");
+        return (false, $"403 Forbidden. User lacks capability to create posts. Body: {body}");
 
       if (createResp.StatusCode != HttpStatusCode.Created)
-      {
-        var body = await createResp.Content.ReadAsStringAsync(ct);
-        return (false, $"Unexpected status {(int)createResp.StatusCode}: {body}");
-      }
+        return (false, $"Unexpected {(int)createResp.StatusCode} {createResp.ReasonPhrase}: {body}");
 
       // Parse created post ID
       int postId;
@@ -105,29 +155,30 @@ namespace WooCommerce.Configuration
         using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
         postId = doc.RootElement.GetProperty("id").GetInt32();
       }
-      catch
-      {
-        // If we can’t parse ID, we still proved write access.
-        return (true, "Write OK: draft created (couldn’t parse ID to delete).");
-      }
+      catch { return (true, "Write OK: draft created (couldn’t parse ID to delete)."); }
 
-      // 2) Try to delete the draft (nice-to-have cleanup; not required to prove write)
-      var deleteEndpoint = $"{baseUrl}/wp-json/wp/v2/posts/{postId}?force=true";
+      // Cleanup (best effort)
+      var deleteEndpoint = $"{restBase}wp/v2/posts/{postId}?force=true";
+      using var delReq = new HttpRequestMessage(HttpMethod.Delete, deleteEndpoint);
+      delReq.Headers.Authorization = new AuthenticationHeaderValue("Basic", token);
       try
       {
-        var deleteResp = await http.DeleteAsync(deleteEndpoint, ct);
-        // Some hosts block DELETE; creation alone proves write.
-        if (deleteResp.IsSuccessStatusCode)
-          return (true, $"Destination {baseUrl} API key is authorized for read and write");
-        else
-          return (false, $"Destination {baseUrl} API key write OK. Delete failed (likely server rule), but write access is confirmed");
+        var del = await http.SendAsync(delReq, ct);
+        return del.IsSuccessStatusCode
+            ? (true, $"Write OK: draft created and deleted. ({baseUrl})")
+            : (true, $"Write OK: draft created. Delete failed ({(int)del.StatusCode}).");
       }
       catch
       {
-        return (false, $"Destination {baseUrl} API key write OK. Draft created. Delete not attempted/failed, but write is confirmed.");
+        return (true, "Write OK: draft created. Delete not attempted/failed.");
+      }
+
+      static async Task<bool> TryOk(HttpClient http, string url, CancellationToken ct)
+      {
+        try { using var r = await http.GetAsync(url, ct); return r.IsSuccessStatusCode; }
+        catch { return false; }
       }
     }
-
 
   }
 }

@@ -50,7 +50,7 @@ namespace WooCommerce.Synchronising
     {
       CategoryRepository categoryRepository = new CategoryRepository();
 
-      yield return new CategoryPusher(_httpClient, _config.Source, _logger, categoryRepository.GetAllCategorySource());
+      yield return new CategoryPusher(_httpClient, _config.Destination, _logger, categoryRepository.GetAllCategorySource());
     }
 
 
