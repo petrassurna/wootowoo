@@ -99,6 +99,139 @@ namespace WooCommerce.Configuration
       return (false, $"Failed to read WooCommerce categories after all attempts. Last response: {statusText}. Body: {lastBody}");
     }
 
+    public static async Task<(bool ok, string message)> IsValidWooCommerceWrite(
+   string baseUrl,
+   string key,
+   string secret,
+   HttpClient http,
+   CancellationToken ct = default)
+    {
+      if (string.IsNullOrWhiteSpace(baseUrl))
+        return (false, "Base URL is required.");
+      if (string.IsNullOrWhiteSpace(key) || string.IsNullOrWhiteSpace(secret))
+        return (false, "Consumer key/secret are required.");
+      if (http == null)
+        return (false, "HttpClient is required.");
+
+      string root = baseUrl.TrimEnd('/');
+      string productsUrl = $"{root}/wp-json/wc/v3/products";
+
+      // Prepare auth header (WooCommerce accepts ck/cs via Basic)
+      var token = Convert.ToBase64String(Encoding.ASCII.GetBytes($"{key}:{secret}"));
+
+      // Payload: minimal draft product
+      var payload = new
+      {
+        name = $"WooToWoo Write Test {Guid.NewGuid():N}",
+        status = "draft",
+        type = "simple",
+        // keep it invisible just in case
+        catalog_visibility = "hidden",
+        virtual_ = true
+      };
+      string json = JsonSerializer.Serialize(payload);
+
+      int? createdId = null;
+
+      try
+      {
+        // 1) Create draft product (POST)
+        using (var req = new HttpRequestMessage(HttpMethod.Post, productsUrl))
+        {
+          req.Headers.Authorization = new AuthenticationHeaderValue("Basic", token);
+          req.Headers.UserAgent.ParseAdd("WooToWoo/1.0");
+          req.Content = new StringContent(json, Encoding.UTF8, "application/json");
+
+          using var resp = await http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, ct);
+          if (!resp.IsSuccessStatusCode)
+          {
+            var body = await SafeReadAsync(resp, ct);
+            return (false, ExplainFailure("POST", productsUrl, resp.StatusCode, body));
+          }
+
+          // Expect JSON with "id"
+          var bytes = await resp.Content.ReadAsByteArrayAsync(ct);
+          using var doc = JsonDocument.Parse(bytes);
+          if (doc.RootElement.TryGetProperty("id", out var idProp) && idProp.TryGetInt32(out var id))
+          {
+            createdId = id;
+          }
+          else
+          {
+            return (false, "Write check: product created but no ID returned.");
+          }
+        }
+
+        // 2) Delete it (DELETE ?force=true)
+        string deleteUrl = $"{productsUrl}/{createdId}?force=true";
+        using (var del = new HttpRequestMessage(HttpMethod.Delete, deleteUrl))
+        {
+          del.Headers.Authorization = new AuthenticationHeaderValue("Basic", token);
+          del.Headers.UserAgent.ParseAdd("WooToWoo/1.0");
+
+          using var resp = await http.SendAsync(del, HttpCompletionOption.ResponseHeadersRead, ct);
+          if (!resp.IsSuccessStatusCode)
+          {
+            var body = await SafeReadAsync(resp, ct);
+            // try soft delete (move to trash) as a fallback
+            string trashUrl = $"{productsUrl}/{createdId}";
+            using var del2 = new HttpRequestMessage(HttpMethod.Delete, trashUrl);
+            del2.Headers.Authorization = new AuthenticationHeaderValue("Basic", token);
+            del2.Headers.UserAgent.ParseAdd("WooToWoo/1.0");
+
+            using var resp2 = await http.SendAsync(del2, HttpCompletionOption.ResponseHeadersRead, ct);
+            if (!resp2.IsSuccessStatusCode)
+            {
+              var body2 = await SafeReadAsync(resp2, ct);
+              return (true, $"Write check passed (created product #{createdId}) but cleanup failed. DELETE errors: force={resp.StatusCode} {Short(body)}; trash={resp2.StatusCode} {Short(body2)}");
+            }
+          }
+        }
+
+        return (true, $"Write access OK for {baseUrl} (created and deleted test product #{createdId}).");
+      }
+      catch (TaskCanceledException) when (ct.IsCancellationRequested)
+      {
+        return (false, "Write check canceled.");
+      }
+      catch (Exception ex)
+      {
+        return (false, $"Unexpected error during write check: {ex.Message}");
+      }
+
+    }
+
+
+    private static async Task<string> SafeReadAsync(HttpResponseMessage resp, CancellationToken ct)
+    {
+      try { return await resp.Content.ReadAsStringAsync(ct); }
+      catch { return string.Empty; }
+    }
+
+    private static string ExplainFailure(string verb, string url, HttpStatusCode code, string body)
+    {
+      var msg = new StringBuilder();
+      msg.Append($"{verb} {url} failed with {(int)code} {code}.");
+      // Common Woo errors include JSON with "message"
+      try
+      {
+        using var doc = JsonDocument.Parse(body);
+        if (doc.RootElement.TryGetProperty("message", out var m))
+          msg.Append($" {m.GetString()}");
+      }
+      catch { /* body not JSON */ }
+
+      // Hints
+      if (code == HttpStatusCode.Unauthorized || code == HttpStatusCode.Forbidden)
+        msg.Append(" Check that the REST key has Read/Write permissions and belongs to a user with manage_woocommerce caps, and that you are using HTTPS.");
+
+      return msg.ToString();
+    }
+
+    private static string Short(string s) =>
+        string.IsNullOrWhiteSpace(s) ? "" : (s.Length <= 220 ? s : s.Substring(0, 220) + "…");
+
+
     public static async Task<(bool ok, string message)> IsValidWordPressReadWrite(
         string baseUrl,
         string username,

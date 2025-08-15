@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using System.Net.Http;
 using WooCommerce.Http;
 
 namespace WooCommerce.Configuration
@@ -26,16 +27,22 @@ namespace WooCommerce.Configuration
 
 
     private async Task<(bool ok, string message)> DestinationReadAndWriteValid(HttpClient httpClient, ILogger logger)
-    { 
-     (bool ok, string message) = await Http.IsValidWordPressReadWrite(Destination.Url, Destination.WordPressAPIUser.Username, Destination.WordPressAPIUser.Password, httpClient);
+    {
+      (bool ok, string message) = await Http.IsValidWordPressReadWrite(Destination.Url, Destination.WordPressAPIUser.Username, Destination.WordPressAPIUser.Password, httpClient);
 
       if (!ok && logger is not null)
       {
         logger.LogInformation(message);
       }
+      else
+      {
+        (ok, message) = await Http.IsValidWooCommerceWrite(Destination.Url, Destination.Key, Destination.Secret, httpClient);
+      }
 
       return (ok, message);
     }
+
+
 
     private async Task<(bool ok, string message)> SourceReadValid(HttpClient httpClient, ILogger logger)
     {
@@ -48,6 +55,9 @@ namespace WooCommerce.Configuration
 
       return (ok, message);
     }
+
+
+
 
 
   }
