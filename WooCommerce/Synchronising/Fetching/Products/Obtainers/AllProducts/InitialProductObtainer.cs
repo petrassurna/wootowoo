@@ -1,11 +1,11 @@
 ﻿using Microsoft.Extensions.Logging;
 using WooCommerce.Http;
-using WooCommerce.Http.SourceInstallation;
 using WooCommerce.Http.SourceInstallation.Structures;
 using WooCommerce.Repositories.Products;
 using WooCommerce.Repositories.Summary;
+using WooCommerce.Synchronising.Fetchers.Products;
 
-namespace WooCommerce.Synchronising.Fetchers.Products.Obtainers
+namespace WooCommerce.Synchronising.Fetching.Products.Obtainers.AllProducts
 {
   public class InitialProductObtainer : IObtainer
   {
@@ -42,9 +42,32 @@ namespace WooCommerce.Synchronising.Fetchers.Products.Obtainers
         return;
       }
 
-      int startAt = (int)Math.Floor(Convert.ToDecimal((productsImported / PRODUCTS_PER_PAGE))); 
+      int startAt = (int)Math.Floor(Convert.ToDecimal(productsImported / PRODUCTS_PER_PAGE)); 
 
       await Get(startAt + 1, PRODUCTS_PER_PAGE);
+    }
+
+
+    public async Task Get(IEnumerable<int> productIds)
+    {
+      var allProducts = new List<Product>();
+
+      _productRepository.ClearDatabase();
+
+      IEnumerable<Product> products = await _productHttp.GetProducts(productIds);
+
+      _productRepository.SaveProducts(products.Select(p => new RepoProduct()
+      {
+        Id = p.id,
+        DateAdded = DateTime.UtcNow,
+        Name = p.name,
+        ProductType = p.type,
+        Slug = p.slug,
+        Product = p,
+        DateUploaded = null
+      }));
+
+      _logger.LogInformation($"Finished saving {productIds.Count()} products: {string.Join(",", productIds)}");
     }
 
 
@@ -65,7 +88,7 @@ namespace WooCommerce.Synchronising.Fetchers.Products.Obtainers
 
       while (true)
       {
-        var products = await _productHttp.GetProducts(page, per_page);
+        IEnumerable<Product> products = await _productHttp.GetProducts(page, per_page);
 
         if (products == null || !products.Any())
           break;
@@ -92,6 +115,7 @@ namespace WooCommerce.Synchronising.Fetchers.Products.Obtainers
 
       _logger.LogInformation($"Finished saving {productImportedThisMethod} products");
     }
+
 
   }
 

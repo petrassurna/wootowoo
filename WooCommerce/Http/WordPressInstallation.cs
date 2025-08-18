@@ -1,4 +1,5 @@
-﻿using static System.Runtime.InteropServices.JavaScript.JSType;
+﻿using System.Buffers.Text;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace WooCommerce.Http
 {
@@ -8,10 +9,9 @@ namespace WooCommerce.Http
     public string Key { get; set; }
     public string Secret { get; set; }
 
-    public WordPressUser? WordPressAPIUser { get; set; } 
+    public WordPressUser? WordPressAPIUser { get; set; }
 
-    public string Url => Uri.ToString();
-
+    public string Url => Uri.ToString().Trim().TrimEnd('/');
   }
 
 

@@ -2,11 +2,11 @@
 using Newtonsoft.Json;
 using System.Text;
 using WooCommerce.Http;
-using WooCommerce.Http.SourceInstallation;
 using WooCommerce.Http.SourceInstallation.Structures;
 using WooCommerce.Repositories.Products;
+using WooCommerce.Synchronising.Fetchers.Products;
 
-namespace WooCommerce.Synchronising.Fetchers.Products.Obtainers
+namespace WooCommerce.Synchronising.Fetching.Products.Obtainers.AllProducts
 {
   public class VariationProductObtainer : IObtainer
   {
@@ -15,6 +15,7 @@ namespace WooCommerce.Synchronising.Fetchers.Products.Obtainers
     private readonly int _maxParallelRequests;
     private readonly ProductRepository _productRepository;
     private readonly ILogger _logger;
+    private readonly ProductHttp _productHttp;
 
     private const string VARIABLE = "variable";
 
@@ -27,6 +28,7 @@ namespace WooCommerce.Synchronising.Fetchers.Products.Obtainers
       _maxParallelRequests = maxParallelRequests;
       _productRepository = new ProductRepository();
       _logger = logger;
+      _productHttp = new ProductHttp(_installation, _httpClient);
     }
 
     public async Task Get()
@@ -45,7 +47,6 @@ namespace WooCommerce.Synchronising.Fetchers.Products.Obtainers
 
       _logger.LogInformation($"{unprocessed} variations to update");
 
-      // Use parallelism with throttling
       var throttler = new SemaphoreSlim(_maxParallelRequests);
 
       var tasks = unprocessedVariations.Select(async variation =>
@@ -53,11 +54,10 @@ namespace WooCommerce.Synchronising.Fetchers.Products.Obtainers
         await throttler.WaitAsync();
         try
         {
-          var variationDetails = await GetVariations(variation.Product.id);
+          var variationDetails = await _productHttp.GetVariations(variation.Product.id);
           variation.Product.variationDetails = variationDetails;
           variation.VariationAdded = true;
 
-          //problem here with database in use????
           _productRepository.SaveProduct(variation);
           total++;
           _logger.LogInformation($"{total} variable products updated, {unprocessed - total} left");
@@ -66,7 +66,6 @@ namespace WooCommerce.Synchronising.Fetchers.Products.Obtainers
         catch (Exception ex)
         {
           Console.WriteLine($"Failed to fetch/save variation for product {variation.Product.id}: {ex.Message}");
-          // Optionally log or store failure
         }
         finally
         {
@@ -78,33 +77,13 @@ namespace WooCommerce.Synchronising.Fetchers.Products.Obtainers
     }
 
 
+    public Task Get(IEnumerable<int> productIds) => Get();
+
+
+
     public Task Get(int startAt) => Get();
 
-    private async Task<IEnumerable<Variation>> GetVariations(int productId)
-    {
-      var requestUrl = $"{_installation.Url}/wp-json/wc/v3/products/{productId}/variations";
-
-      var credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{_installation.Key}:{_installation.Secret}"));
-      _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", credentials);
-
-      var response = await _httpClient.GetAsync(requestUrl);
-
-      if (!response.IsSuccessStatusCode)
-      {
-        var error = await response.Content.ReadAsStringAsync();
-        throw new HttpRequestException($"Error fetching variations for product {productId}: {response.StatusCode}, {error}");
-      }
-
-      var responseBody = await response.Content.ReadAsStringAsync();
-
-      if (string.IsNullOrWhiteSpace(responseBody) || responseBody.Trim() == "null")
-      {
-        return Enumerable.Empty<Variation>();
-      }
-
-      return JsonConvert.DeserializeObject<List<Variation>>(responseBody) ?? new List<Variation>();
-    }
-
+  
 
 
   }

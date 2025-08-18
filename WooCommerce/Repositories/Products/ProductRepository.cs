@@ -54,6 +54,32 @@ namespace WooCommerce.Repositories.Products
     }
 
 
+    public IEnumerable<int> GetProductCategories(IEnumerable<int> productIds)
+    {
+      IEnumerable<RepoProduct> products = GetProducts(productIds);
+
+      return products.SelectMany(p => p.Product.categories.Select(c => c.id));
+      need to get parents as well
+    }
+
+
+    public IEnumerable<RepoProduct> GetProducts(IEnumerable<int> productIds)
+    {
+      var ids = productIds?.Distinct().ToArray() ?? Array.Empty<int>();
+      if (ids.Length == 0) return Enumerable.Empty<RepoProduct>();
+
+      lock (_lock)
+      {
+        using var db = new LiteDatabase(_connectionString);
+        var col = db.GetCollection<RepoProduct>(PRODUCTS);
+
+        // ensure index on _id is implicit; this uses the primary key
+        var bsonIds = new BsonArray(ids.Select(i => new BsonValue(i)));
+        return col.Find(Query.In("_id", bsonIds)).ToList();
+      }
+    }
+
+
     public IEnumerable<RepoProduct> GetAllVariations()
     {
       lock (_lock)

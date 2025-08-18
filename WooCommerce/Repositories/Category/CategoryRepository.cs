@@ -54,6 +54,21 @@ namespace WooCommerce.Repositories.Category
     }
 
 
+    public IEnumerable<RepositoryCategory> GetCategories(IEnumerable<int> categoryIds)
+    {
+      var ids = categoryIds?.Distinct().ToArray() ?? Array.Empty<int>();
+      if (ids.Length == 0) return Enumerable.Empty<RepositoryCategory>();
+
+      lock (_lock)
+      {
+        using var db = new LiteDatabase(_connectionString);
+        var collection = db.GetCollection<RepositoryCategory>(CATEGORIES);
+
+        return collection.FindAll().Where(c => categoryIds.Contains(c.SourceId)).ToList();
+      }
+    }
+
+
     public int GetCategoryCount()
     {
       lock (_lock)

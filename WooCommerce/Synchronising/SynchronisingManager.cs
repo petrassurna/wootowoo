@@ -8,6 +8,7 @@ using WooCommerce.Repositories.Category;
 using WooCommerce.Synchronising.Pushing.Categories;
 using WooCommerce.Synchronising.Pushing;
 using WooCommerce.Repositories;
+using WooCommerce.Synchronising.Fetchers.Products;
 
 namespace WooCommerce.Synchronising
 {
@@ -32,17 +33,17 @@ namespace WooCommerce.Synchronising
       }
     }
 
-    private async Task Fetch(IEnumerable<string> categorySlugs, IEnumerable<string> productIds)
+    private async Task Fetch(IEnumerable<int> productIds)
     {
       foreach (var fetcher in Fetchers())
       {
-        await fetcher.Fetch(categorySlugs, productIds);
+        await fetcher.Fetch(productIds);
       }
     }
 
     private IEnumerable<IFetcher> Fetchers()
     {
-      //yield return new ProductFetcher(_httpClient, _config.Source, _logger);
+      yield return new ProductFetcher(_httpClient, _config.Source, _logger);
       yield return new CategoryFetcher(_httpClient, _config.Source, _logger);
     }
 
@@ -51,7 +52,7 @@ namespace WooCommerce.Synchronising
     {
       CategoryRepository categoryRepository = new CategoryRepository();
 
-      yield return new CategoryPusher(_httpClient, _config.Destination, _logger, categoryRepository.GetAllCategorySource());
+      yield return new CategoryPusher(_httpClient, _config.Destination, _logger);
     }
 
 
@@ -64,6 +65,23 @@ namespace WooCommerce.Synchronising
       }
     
       
+      //CategoryRepository categoryRepository = new CategoryRepository();
+      //IEnumerable<RepositoryCategory> categories = categoryRepository.GetCategories();
+
+      //WooCommerce.Workers.ProductUploader productSetter = new WooCommerce.Workers.ProductUploader(httpClient, config.Destination);
+      //await productSetter.Upload(products);
+    }
+
+
+    public async Task Push(IEnumerable<int> productIds)
+    {
+
+      foreach (var pusher in Pushers())
+      {
+        await pusher.Push(productIds);
+      }
+
+
       //CategoryRepository categoryRepository = new CategoryRepository();
       //IEnumerable<RepositoryCategory> categories = categoryRepository.GetCategories();
 
@@ -97,10 +115,10 @@ namespace WooCommerce.Synchronising
     /// <summary>
     /// Limit Synchronise to certain categories and products
     /// </summary>
-    /// <param name="categorySlugs"></param>
     /// <param name="productIds"></param>
+    /// <param name="productIds_"></param>
     /// <returns></returns>
-    public async Task Synchronise(IEnumerable<string> categorySlugs, IEnumerable<string> productIds)
+    public async Task Synchronise(IEnumerable<int> productIds)
     {
       Repository.Delete();
 
@@ -111,8 +129,8 @@ namespace WooCommerce.Synchronising
 
       var sw = Stopwatch.StartNew();
 
-      await Fetch(categorySlugs, productIds);
-      await Push();
+      await Fetch(productIds);
+      await Push(productIds);
 
       sw.Stop();
       //Console.WriteLine($"Elapsed ms: {sw.ElapsedMilliseconds}");

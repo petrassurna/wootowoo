@@ -1,10 +1,10 @@
 ﻿using Microsoft.Extensions.Logging;
-using System.Diagnostics;
 using WooCommerce.Http;
 using WooCommerce.Http.SourceInstallation;
 using WooCommerce.Http.SourceInstallation.Structures;
 using WooCommerce.Repositories.Summary;
-using WooCommerce.Synchronising.Fetchers.Products.Obtainers;
+using WooCommerce.Synchronising.Fetching.Products;
+using WooCommerce.Synchronising.Fetching.Products.Obtainers.AllProducts;
 
 namespace WooCommerce.Synchronising.Fetchers.Products
 {
@@ -37,23 +37,24 @@ namespace WooCommerce.Synchronising.Fetchers.Products
       Console.WriteLine($"Getting products from {_installation.Url}");
       IEnumerable<Product> products = Enumerable.Empty<Product>();
 
-      var sw = Stopwatch.StartNew();
-
       foreach (var obtainer in Obtainers())
       {
         await obtainer.Get();
       }
-
-      sw.Stop();
-      //Console.WriteLine("Elapsed ms: " + sw.ElapsedMilliseconds);
-
-      //return products;
     }
 
-    public Task Fetch(IEnumerable<string> slugs, IEnumerable<string> productIds)
+    public async Task Fetch(IEnumerable<int> productIds)
     {
-      throw new NotImplementedException();
+      _importSummary.UpdateProductsAtSource(productIds.Count());
+      Console.WriteLine($"Getting products {string.Join(",", productIds)} from {_installation.Url}");
+      IEnumerable<Product> products = Enumerable.Empty<Product>();
+
+      foreach (var obtainer in Obtainers())
+      {
+        await obtainer.Get(productIds);
+      }
     }
+
 
     private async Task Initialise()
     {

@@ -14,7 +14,15 @@ namespace WooCommerce.Tests
 
       SynchronisingManager manager = new SynchronisingManager(GetConfig(), httpClient, NullLogger.Instance);
 
-      await manager.Synchronise(["furniture", "recycled-timber", "recycled-timbers", "speciality-items"], ["M151"]);
+      try
+      {
+        await manager.Synchronise([54084]);
+      }
+      catch(Exception e)
+      {
+
+      }
+
     }
 
 

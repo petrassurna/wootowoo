@@ -10,7 +10,7 @@ namespace WooCommerce.Synchronising.Fetchers
   {
     public Task Fetch();
 
-    public Task Fetch(IEnumerable<string> categorySlugs, IEnumerable<string> productIds);
+    public Task Fetch(IEnumerable<int> productIds);
 
   }
 }

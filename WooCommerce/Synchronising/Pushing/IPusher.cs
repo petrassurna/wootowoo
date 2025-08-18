@@ -9,5 +9,8 @@ namespace WooCommerce.Synchronising.Pushing
   public interface IPusher
   {
     public Task Push();
+
+    public Task Push(IEnumerable<int> productIds);
+
   }
 }

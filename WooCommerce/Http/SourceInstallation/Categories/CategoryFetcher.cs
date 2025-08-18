@@ -1,11 +1,10 @@
 ﻿using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
-using System.Net.Http.Headers;
-using System.Text;
+using WooCommerce.Repositories;
 using WooCommerce.Repositories.Category;
+using WooCommerce.Repositories.Products;
 using WooCommerce.Synchronising.Fetchers;
-using WooCommerce.Synchronising.Fetchers.Categories.Http;
 using WooCommerce.Synchronising.Fetchers.Categories.Structures;
+using WooCommerce.Synchronising.Fetching.Categories;
 
 namespace WooCommerce.Http.SourceInstallation.Categories
 {
@@ -30,7 +29,7 @@ namespace WooCommerce.Http.SourceInstallation.Categories
       _requestDelayMs = requestDelayMs;
       _categoryRepository = new CategoryRepository();
       _logger = logger;
-      _categoryHttp = new CategoryHttp(httpClient, _installation, logger);
+      _categoryHttp = new CategoryHttp(httpClient, _installation, logger, maxConcurrency, requestDelayMs);
     }
 
 
@@ -75,10 +74,7 @@ namespace WooCommerce.Http.SourceInstallation.Categories
     }
 
 
-    public Task Fetch(IEnumerable<string> slugs, IEnumerable<string> productIds)
-    {
-      throw new NotImplementedException();
-    }
+    public async Task Fetch(IEnumerable<int> productIds) => await Fetch();
 
 
     private async Task<List<CategorySource>> GetAllCategoriesDirect(int page, int pageSize)
@@ -90,7 +86,7 @@ namespace WooCommerce.Http.SourceInstallation.Categories
 
       do
       {
-        currentPageCategories = await GetCategoriesPages(page, pageSize);
+        currentPageCategories = await _categoryHttp.GetCategoriesPages(page, pageSize);
         allCategories.AddRange(currentPageCategories);
         page++;
 
@@ -104,37 +100,6 @@ namespace WooCommerce.Http.SourceInstallation.Categories
     }
 
 
-    private async Task<List<CategorySource>> GetCategoriesPages(int page, int pageSize)
-    {
-      await _semaphore.WaitAsync();
-
-      try
-      {
-        var requestUri = $"{_installation.Url}/wp-json/wc/v3/products/categories?per_page={pageSize}&page={page}";
-
-        using var request = new HttpRequestMessage(HttpMethod.Get, requestUri);
-
-        var credentials = $"{_installation.Key}:{_installation.Secret}";
-        var base64Credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes(credentials));
-        request.Headers.Authorization = new AuthenticationHeaderValue("Basic", base64Credentials);
-
-        var response = await _httpClient.SendAsync(request);
-        response.EnsureSuccessStatusCode();
-
-        var responseBody = await response.Content.ReadAsStringAsync();
-
-        List<CategorySource> r = new List<CategorySource>();
-        r = JsonConvert.DeserializeObject<List<CategorySource>>(responseBody) ?? new List<CategorySource>();
-
-        return r;
-      }
-      finally
-      {
-        await Task.Delay(_requestDelayMs);
-        _semaphore.Release();
-      }
-
-    }
 
   }
 }

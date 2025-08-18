@@ -1,9 +1,11 @@
 ﻿using Microsoft.Extensions.Logging;
 using WooCommerce.Http;
 using WooCommerce.Http.Media;
+using WooCommerce.Repositories;
 using WooCommerce.Repositories.Category;
-using WooCommerce.Synchronising.Fetchers.Categories.Http;
+using WooCommerce.Repositories.Products;
 using WooCommerce.Synchronising.Fetchers.Categories.Structures;
+using WooCommerce.Synchronising.Fetching.Categories;
 using WooCommerce.Synchronising.Fetching.Categories.Structures;
 
 namespace WooCommerce.Synchronising.Pushing.Categories
@@ -17,9 +19,8 @@ namespace WooCommerce.Synchronising.Pushing.Categories
     CategoryRepository _categoryRepository;
     CategoryHttp _categoryHttp;
     ILogger _logger;
-    IEnumerable<CategorySource> _categories;
 
-    public CategoryPusher(HttpClient httpClient, WordPressInstallation destination, ILogger logger, IEnumerable<CategorySource> categories)
+    public CategoryPusher(HttpClient httpClient, WordPressInstallation destination, ILogger logger)
     {
       _httpClient = httpClient;
       _destination = destination;
@@ -27,8 +28,6 @@ namespace WooCommerce.Synchronising.Pushing.Categories
       _categoryRepository = new CategoryRepository();
       _categoryHttp = new CategoryHttp(_httpClient, _destination, logger);
       _logger = logger;
-      _categories = categories;
-
     }
 
     private async Task<CategoryClassesDestination> AddCategory(CategorySource category)
@@ -38,7 +37,17 @@ namespace WooCommerce.Synchronising.Pushing.Categories
 
     public async Task Push()
     {
-      await UploadWithoutParents();
+      await UploadWithoutParents(_categoryRepository.GetAllCategorySource());
+      await UploadWithParents();
+    }
+
+
+    public async Task Push(IEnumerable<int> productIds)
+    {
+      ProductRepository productRepository = new ProductRepository(Repository.DatabaseConnection());
+      IEnumerable<int> categoryIds = productRepository.GetProductCategories(productIds);
+
+      await UploadWithoutParents(categoryIds);
       await UploadWithParents();
     }
 
@@ -56,7 +65,7 @@ namespace WooCommerce.Synchronising.Pushing.Categories
 
       foreach (var category in categories.Where(c => c.CategoryAtSource.parent != 0))
       {
-        var parentRow = categories.Single(c => c.SourceId == category.SourceParent);
+        var parentRow = categories.Single(c => c.SourceParent == category.SourceParent);
 
         if (category.DestinationParent != parentRow.DestinationId)
         {
@@ -165,12 +174,12 @@ namespace WooCommerce.Synchronising.Pushing.Categories
       return categoryUploaded;
     }
 
-    private async Task UploadWithoutParents()
+    private async Task UploadWithoutParents(IEnumerable<CategorySource> categories)
     {
       int count = 1;
-      int total = _categories.Count();
+      int total = categories.Count();
 
-      foreach (var category in _categories)
+      foreach (var category in categories)
       {
         CategoryClassesDestination uploaded = await UploadCategory(category, count, total);
 
@@ -180,6 +189,10 @@ namespace WooCommerce.Synchronising.Pushing.Categories
       }
     }
 
+
+    private async Task UploadWithoutParents(IEnumerable<int> categoryIds)
+      => await UploadWithoutParents(_categoryRepository.GetCategories(categoryIds)
+        .Select(c => c.CategoryAtSource));
 
   }
 
