@@ -17,7 +17,8 @@ namespace WooCommerce.Synchronising.Pushing.Categories
     WordPressInstallation _destination;
     MediaUploader _mediaUploader;
     CategoryRepository _categoryRepository;
-    CategoryHttp _categoryHttp;
+    CategoryPusherHttp _categoryPusherHttp;
+    CategoryFetcherHttp _categoryFetcherHttp;
     ILogger _logger;
 
     public CategoryPusher(HttpClient httpClient, WordPressInstallation destination, ILogger logger)
@@ -26,12 +27,13 @@ namespace WooCommerce.Synchronising.Pushing.Categories
       _destination = destination;
       _mediaUploader = new MediaUploader(httpClient, destination);
       _categoryRepository = new CategoryRepository();
-      _categoryHttp = new CategoryHttp(_httpClient, _destination, logger);
+      _categoryFetcherHttp = new CategoryFetcherHttp(_httpClient, _destination, logger);
+      _categoryPusherHttp = new CategoryPusherHttp(_httpClient, _destination, logger);
       _logger = logger;
     }
 
     private async Task<CategoryClassesDestination> AddCategory(CategorySource category)
-      => await _categoryHttp.UploadCategory(HttpMethod.Post, category,
+      => await _categoryPusherHttp.UploadCategory(HttpMethod.Post, category,
         0, $"{_destination.Url}/wp-json/wc/v3/products/categories");
 
 
@@ -53,7 +55,7 @@ namespace WooCommerce.Synchronising.Pushing.Categories
 
 
     private async Task<CategoryClassesDestination> UpdateCategory(CategorySource categoryToUpload, CategorySource categoryUploaded, int parent)
-      => await _categoryHttp.UploadCategory(HttpMethod.Put, categoryToUpload, parent,
+      => await _categoryPusherHttp.UploadCategory(HttpMethod.Put, categoryToUpload, parent,
         $"{_destination.Url}/wp-json/wc/v3/products/categories/{categoryUploaded.id}");
 
 
@@ -69,7 +71,7 @@ namespace WooCommerce.Synchronising.Pushing.Categories
 
         if (category.DestinationParent != parentRow.DestinationId)
         {
-          await _categoryHttp.UpdateCategoryParent(category.DestinationId, parentRow.DestinationId);
+          await _categoryPusherHttp.UpdateCategoryParent(category.DestinationId, parentRow.DestinationId);
 
           category.DestinationParent = parentRow.DestinationId;
           _categoryRepository.SaveCategory(category);
@@ -84,7 +86,7 @@ namespace WooCommerce.Synchronising.Pushing.Categories
     private async Task<CategoryClassesDestination> UploadCategory(CategorySource originCategory, int count, int total)
     {
       CategoryClassesDestination categoryUploaded = null;
-      List<CategorySource> destinationCategory = await _categoryHttp.ExistingCategories(originCategory.slug);
+      List<CategorySource> destinationCategory = await _categoryFetcherHttp.ExistingCategories(originCategory.slug);
       bool hasBeenUploaded = false;
 
       if (destinationCategory.Count() > 0)
@@ -116,7 +118,7 @@ namespace WooCommerce.Synchronising.Pushing.Categories
           var c = originCategory.CategorySourceExistingImage(destinationCategory.image.id);
           c.id = destinationCategory.id;
 
-          categoryUploaded = await _categoryHttp.CategoryUpdateHttp(c, destinationCategory.parent, _destination.Url);
+          categoryUploaded = await _categoryPusherHttp.CategoryUpdateHttp(c, destinationCategory.parent, _destination.Url);
         }
         else
         {
@@ -132,7 +134,7 @@ namespace WooCommerce.Synchronising.Pushing.Categories
           {
             var c = originCategory.CategorySourceExistingImage((int)mediaId);
             c.id = destinationCategory.id;
-            categoryUploaded = await _categoryHttp.CategoryUpdateHttp(c, destinationCategory.parent, _destination.Url);
+            categoryUploaded = await _categoryPusherHttp.CategoryUpdateHttp(c, destinationCategory.parent, _destination.Url);
           }
           else
           {

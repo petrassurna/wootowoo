@@ -3,7 +3,8 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using WooCommerce.Http;
-using WooCommerce.Http.DestinationInstallation;
+using WooCommerce.Http.Products.Pushing;
+using WooCommerce.Http.Products.Pushing.Structures;
 using WooCommerce.Http.SourceInstallation.Structures;
 
 namespace WooCommerce.Workers

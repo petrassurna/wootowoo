@@ -59,7 +59,7 @@ namespace WooCommerce.Repositories.Products
       IEnumerable<RepoProduct> products = GetProducts(productIds);
 
       return products.SelectMany(p => p.Product.categories.Select(c => c.id));
-      need to get parents as well
+      //?need to get parents as well
     }
 
 

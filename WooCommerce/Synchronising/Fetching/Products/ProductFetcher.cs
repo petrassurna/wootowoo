@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using WooCommerce.Http;
+using WooCommerce.Http.Products.Fetching;
 using WooCommerce.Http.SourceInstallation;
 using WooCommerce.Http.SourceInstallation.Structures;
 using WooCommerce.Repositories.Summary;
@@ -19,7 +20,7 @@ namespace WooCommerce.Synchronising.Fetchers.Products
     private readonly WordPressInstallation _installation;
     private readonly ImportSummaryRepository _importSummary;
     private readonly ILogger _logger;
-    private readonly ProductHttp _productHttp;
+    private readonly ProductFetchingHttp _productHttp;
 
     public ProductFetcher(HttpClient httpClient, WordPressInstallation installation, ILogger logger)
     {
@@ -27,7 +28,7 @@ namespace WooCommerce.Synchronising.Fetchers.Products
       _installation = installation;
       _importSummary = new ImportSummaryRepository();
       _logger = logger;
-      _productHttp = new ProductHttp(installation, httpClient);
+      _productHttp = new ProductFetchingHttp(installation, httpClient);
     }
 
 

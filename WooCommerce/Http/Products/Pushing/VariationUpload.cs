@@ -3,7 +3,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using WooCommerce.Http.SourceInstallation.Structures;
 
-namespace WooCommerce.Http.DestinationInstallation
+namespace WooCommerce.Http.Products.Pushing
 {
 
   public class VariationUpload

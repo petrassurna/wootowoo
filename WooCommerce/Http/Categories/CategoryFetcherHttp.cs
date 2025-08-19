@@ -1,16 +1,14 @@
 ﻿using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
-using System.Buffers.Text;
 using System.Net.Http.Headers;
 using System.Text;
-using System.Threading;
 using WooCommerce.Http;
 using WooCommerce.Synchronising.Fetchers.Categories.Structures;
 using WooCommerce.Synchronising.Fetching.Categories.Structures;
 
 namespace WooCommerce.Synchronising.Fetching.Categories
 {
-  public class CategoryHttp
+  public class CategoryFetcherHttp
   {
     HttpClient _httpClient;
     WordPressInstallation _source;
@@ -18,9 +16,7 @@ namespace WooCommerce.Synchronising.Fetching.Categories
     SemaphoreSlim _semaphore;
     int _requestDelayMs;
 
-
-
-    public CategoryHttp(HttpClient httpClient, WordPressInstallation destination, ILogger logger, int maxConcurrency = 3, int requestDelayMs = 100)
+    public CategoryFetcherHttp(HttpClient httpClient, WordPressInstallation destination, ILogger logger, int maxConcurrency = 3, int requestDelayMs = 100)
     {
       _httpClient = httpClient;
       _source = destination;
@@ -44,28 +40,6 @@ namespace WooCommerce.Synchronising.Fetching.Categories
                 ? new
                 {
                   category.image.src
-                }
-                : null
-      };
-    }
-
-
-    private object BuildCategoryPayload1(CategorySource category, int parent)
-    {
-      return new
-      {
-        category.name,
-        category.slug,
-        category.description,
-        parent,
-        category.display,
-        category.menu_order,
-        image = category.image != null
-                ? new
-                {
-                  category.image.src,
-                  category.image.alt,
-                  category.name
                 }
                 : null
       };
@@ -130,6 +104,31 @@ namespace WooCommerce.Synchronising.Fetching.Categories
     }
 
 
+
+    public async Task<List<CategorySource>> ExistingCategories(string slug)
+    {
+
+      string baseUrl = _source.Url.Trim().TrimEnd('/');
+
+      var requestUri = $"{baseUrl}/wp-json/wc/v3/products/categories?slug={slug}";
+
+      using var request = new HttpRequestMessage(HttpMethod.Get, requestUri);
+
+      var credentials = $"{_source.Key}:{_source.Secret}";
+      var base64Credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes(credentials));
+      request.Headers.Authorization = new AuthenticationHeaderValue("Basic", base64Credentials);
+
+      var response = await _httpClient.SendAsync(request);
+      response.EnsureSuccessStatusCode();
+
+      var responseBody = await response.Content.ReadAsStringAsync();
+
+      List<CategorySource> categories = JsonConvert.DeserializeObject<List<CategorySource>>(responseBody);
+
+      return categories;
+    }
+
+
     public async Task<int> GetCategoryCount(CancellationToken ct = default)
     {
       var url = $"{_source.Url.TrimEnd('/')}/wp-json/wc/v3/products/categories?per_page=1";
@@ -158,127 +157,7 @@ namespace WooCommerce.Synchronising.Fetching.Categories
     }
 
 
-    public async Task<List<CategorySource>> ExistingCategories(string slug)
-    {
 
-      string baseUrl = _source.Url.Trim().TrimEnd('/');
-
-      var requestUri = $"{baseUrl}/wp-json/wc/v3/products/categories?slug={slug}";
-
-      using var request = new HttpRequestMessage(HttpMethod.Get, requestUri);
-
-      var credentials = $"{_source.Key}:{_source.Secret}";
-      var base64Credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes(credentials));
-      request.Headers.Authorization = new AuthenticationHeaderValue("Basic", base64Credentials);
-
-      var response = await _httpClient.SendAsync(request);
-      response.EnsureSuccessStatusCode();
-
-      var responseBody = await response.Content.ReadAsStringAsync();
-
-      List<CategorySource> categories = JsonConvert.DeserializeObject<List<CategorySource>>(responseBody);
-
-      return categories;
-    }
-
-
-    public async Task<List<CategorySource>> GetCategoriesPages(int page, int pageSize)
-    {
-      await _semaphore.WaitAsync();
-
-      try
-      {
-        var requestUri = $"{_source.Url}/wp-json/wc/v3/products/categories?per_page={pageSize}&page={page}";
-
-        using var request = new HttpRequestMessage(HttpMethod.Get, requestUri);
-
-        var credentials = $"{_source.Key}:{_source.Secret}";
-        var base64Credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes(credentials));
-        request.Headers.Authorization = new AuthenticationHeaderValue("Basic", base64Credentials);
-
-        var response = await _httpClient.SendAsync(request);
-        response.EnsureSuccessStatusCode();
-
-        var responseBody = await response.Content.ReadAsStringAsync();
-
-        List<CategorySource> r = new List<CategorySource>();
-        r = JsonConvert.DeserializeObject<List<CategorySource>>(responseBody) ?? new List<CategorySource>();
-
-        return r;
-      }
-      finally
-      {
-        await Task.Delay(_requestDelayMs);
-        _semaphore.Release();
-      }
-
-    }
-
-
-    public async Task<List<CategorySource>> GetCategoriesByIds(IEnumerable<int> ids, CancellationToken ct = default)
-    {
-      var idList = (ids ?? Enumerable.Empty<int>()).Distinct().ToList();
-      if (idList.Count == 0) return new List<CategorySource>();
-
-      var auth = new AuthenticationHeaderValue(
-          "Basic",
-          Convert.ToBase64String(Encoding.UTF8.GetBytes($"{_source.Key}:{_source.Secret}"))
-      );
-
-      var baseUrl = $"{_source.Url.TrimEnd('/')}/wp-json/wc/v3/products/categories";
-
-      // Collect results across batches
-      var fetched = new Dictionary<int, CategorySource>();
-
-      // Chunk IDs so include.Count <= per_page (max 100)
-      const int batchSize = 100;
-      foreach (var batch in idList.Chunk(batchSize))
-      {
-        var includeParam = Uri.EscapeDataString(string.Join(",", batch));
-        var perPage = Math.Min(batch.Length, batchSize);
-        var page = 1;
-
-        while (true)
-        {
-          var requestUri = $"{baseUrl}?include={includeParam}&per_page={perPage}&page={page}&orderby=include";
-
-          using var req = new HttpRequestMessage(HttpMethod.Get, requestUri);
-          req.Headers.Authorization = auth;
-          req.Headers.UserAgent.ParseAdd("WooToWoo/1.0");
-
-          using var resp = await _httpClient.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, ct);
-          resp.EnsureSuccessStatusCode();
-
-          var json = await resp.Content.ReadAsStringAsync(ct);
-          var items = JsonConvert.DeserializeObject<List<CategorySource>>(json) ?? new List<CategorySource>();
-
-          foreach (var c in items)
-          {
-            // assuming CategorySource has Id (int) or change key selector accordingly
-            if (!fetched.ContainsKey(c.id))
-              fetched[c.id] = c;
-          }
-
-          // Follow pagination if Woo adds Link: rel="next"
-          if (!resp.Headers.TryGetValues("Link", out var linkVals) ||
-              !linkVals.Any(v => v.Contains("rel=\"next\"", StringComparison.OrdinalIgnoreCase)))
-          {
-            break; // no more pages for this batch
-          }
-
-          page++;
-        }
-      }
-
-      // Return in the same order as requested IDs (drop missing gracefully)
-      var ordered = new List<CategorySource>(fetched.Count);
-      foreach (var id in idList)
-      {
-        if (fetched.TryGetValue(id, out var cat))
-          ordered.Add(cat);
-      }
-      return ordered;
-    }
 
 
     public async Task<CategoryClassesDestination> UploadCategory(HttpMethod method, CategorySource category,

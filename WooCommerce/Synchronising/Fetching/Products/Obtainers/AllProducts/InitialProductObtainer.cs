@@ -1,9 +1,9 @@
 ﻿using Microsoft.Extensions.Logging;
 using WooCommerce.Http;
+using WooCommerce.Http.Products.Fetching;
 using WooCommerce.Http.SourceInstallation.Structures;
 using WooCommerce.Repositories.Products;
 using WooCommerce.Repositories.Summary;
-using WooCommerce.Synchronising.Fetchers.Products;
 
 namespace WooCommerce.Synchronising.Fetching.Products.Obtainers.AllProducts
 {
@@ -14,7 +14,7 @@ namespace WooCommerce.Synchronising.Fetching.Products.Obtainers.AllProducts
     private readonly WordPressInstallation _installation;
     private readonly ProductRepository _productRepository;
     private readonly ImportSummaryRepository _importSummaryRepo;
-    private readonly ProductHttp _productHttp;
+    private readonly ProductFetchingHttp _productHttp;
     private readonly ILogger _logger;
 
     private int PRODUCTS_PER_PAGE = 100;
@@ -27,7 +27,7 @@ namespace WooCommerce.Synchronising.Fetching.Products.Obtainers.AllProducts
 
       _productRepository = new ProductRepository();
       _importSummaryRepo = new ImportSummaryRepository();
-      _productHttp = new ProductHttp(installation, httpClient);
+      _productHttp = new ProductFetchingHttp(installation, httpClient);
     }
 
 

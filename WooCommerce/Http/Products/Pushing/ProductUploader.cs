@@ -1,6 +1,6 @@
 ﻿using WooCommerce.Http.SourceInstallation.Structures;
 
-namespace WooCommerce.Http.DestinationInstallation
+namespace WooCommerce.Http.Products.Pushing
 {
 
   public class ProductUploader

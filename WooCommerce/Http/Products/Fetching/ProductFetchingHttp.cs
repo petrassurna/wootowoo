@@ -1,19 +1,18 @@
 ﻿using Newtonsoft.Json;
 using System.Net.Http.Headers;
 using System.Text;
-using WooCommerce.Http;
 using WooCommerce.Http.SourceInstallation.Structures;
 
-namespace WooCommerce.Synchronising.Fetchers.Products
+namespace WooCommerce.Http.Products.Fetching
 {
-  public class ProductHttp
+  public class ProductFetchingHttp
   {
     private readonly WordPressInstallation _installation;
     private readonly HttpClient _httpClient;
-    private readonly ProductHttp _productHttp;
+    private readonly ProductFetchingHttp _productHttp;
 
 
-    public ProductHttp(WordPressInstallation installation, HttpClient httpClient)
+    public ProductFetchingHttp(WordPressInstallation installation, HttpClient httpClient)
     {
       _installation = installation;
       _httpClient = httpClient;
@@ -49,7 +48,7 @@ namespace WooCommerce.Synchronising.Fetchers.Products
       using (var httpClient = new HttpClient())
       {
         var authValue = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{_installation.Key}:{_installation.Secret}"));
-        httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", authValue);
+        httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", authValue);
 
         string requestUrl = $"{_installation.Url}/wp-json/wc/v3/products?per_page=1&page=1";
 
@@ -115,7 +114,7 @@ namespace WooCommerce.Synchronising.Fetchers.Products
       var requestUrl = $"{_installation.Url}/wp-json/wc/v3/products/{productId}/variations";
 
       var credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{_installation.Key}:{_installation.Secret}"));
-      _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", credentials);
+      _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", credentials);
 
       var response = await _httpClient.GetAsync(requestUrl);
 

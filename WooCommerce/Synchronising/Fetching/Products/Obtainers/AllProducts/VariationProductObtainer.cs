@@ -2,9 +2,9 @@
 using Newtonsoft.Json;
 using System.Text;
 using WooCommerce.Http;
+using WooCommerce.Http.Products.Fetching;
 using WooCommerce.Http.SourceInstallation.Structures;
 using WooCommerce.Repositories.Products;
-using WooCommerce.Synchronising.Fetchers.Products;
 
 namespace WooCommerce.Synchronising.Fetching.Products.Obtainers.AllProducts
 {
@@ -15,7 +15,7 @@ namespace WooCommerce.Synchronising.Fetching.Products.Obtainers.AllProducts
     private readonly int _maxParallelRequests;
     private readonly ProductRepository _productRepository;
     private readonly ILogger _logger;
-    private readonly ProductHttp _productHttp;
+    private readonly ProductFetchingHttp _productHttp;
 
     private const string VARIABLE = "variable";
 
@@ -28,7 +28,7 @@ namespace WooCommerce.Synchronising.Fetching.Products.Obtainers.AllProducts
       _maxParallelRequests = maxParallelRequests;
       _productRepository = new ProductRepository();
       _logger = logger;
-      _productHttp = new ProductHttp(_installation, _httpClient);
+      _productHttp = new ProductFetchingHttp(_installation, _httpClient);
     }
 
     public async Task Get()

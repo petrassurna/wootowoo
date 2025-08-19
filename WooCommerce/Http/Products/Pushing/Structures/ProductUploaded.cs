@@ -1,6 +1,6 @@
 ﻿using System.Text.Json;
 
-namespace WooCommerce.Http.DestinationInstallation
+namespace WooCommerce.Http.Products.Pushing.Structures
 {
 
   public class ProductUploadedAttribute
